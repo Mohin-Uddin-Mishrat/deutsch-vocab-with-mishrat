@@ -1,0 +1,10 @@
+export type UserRole = "USER" | "ADMIN";
+export type AuthCredentials = { accessToken: string; role?: UserRole };
+export type RegisterPayload = { name: string; email: string; password: string };
+export type LoginPayload = Pick<RegisterPayload, "email" | "password">;
+export type PersonalVocabulary = { bangla: string; english: string[]; sentence?: string };
+export type CategoryVocabulary = { bangla: string; german: string[]; sentence?: string };
+export type Category = { _id: string; name: string; vocabularies: CategoryVocabulary[] };
+export type AdminUser = { _id: string; name: string; email: string; accountStatus: string; isVerified: boolean; createdAt: string };
+export type Profile = { account: { _id: string; name: string; email: string; role: UserRole; learned: PersonalVocabulary[]; pending: PersonalVocabulary[] }; categories: { own?: Category[]; admin?: Category[]; all?: Category[] }; categoryNameList: Record<string, unknown> };
+export type ApiResponse<T> = { success: boolean; message: string; data: T; meta: unknown };
