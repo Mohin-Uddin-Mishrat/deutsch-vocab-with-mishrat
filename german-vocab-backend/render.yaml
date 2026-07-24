@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: deutsch-learning-backend
+    env: node
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_URL
+        sync: false
+      - key: ACCESS_TOKEN
+        generateValue: true
+      - key: REFRESH_TOKEN
+        generateValue: true
+      - key: ACCESS_EXPIRES
+        value: 7d
+      - key: REFRESH_EXPIRES
+        value: 30d
+      - key: RESET_SECRET
+        generateValue: true
+      - key: RESET_EXPIRES
+        value: 10m
+      - key: VERIFIED_TOKEN
+        generateValue: true
+      - key: FRONT_END_URL
+        sync: false
