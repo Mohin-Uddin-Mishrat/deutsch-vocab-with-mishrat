@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useCreateCategoryMutation, useDeleteCategoryMutation, useDeletePersonalVocabulariesMutation, useDeletePersonalVocabularyMutation, useUploadCategoryVocabularyMutation, useUploadPersonalVocabularyMutation } from "@/redux/services/authApi";
 import type { Category, PersonalVocabulary, Profile } from "@/redux/features/auth/types";
 import VocabularyGraph from "./VocabularyGraph";
@@ -969,12 +970,10 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       {/* Mobile Top Header */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-sm text-white shadow-xs">
-            DL
-          </div>
+          <Image src="/asset/logo.jpg" alt="Deutsch logo" width={32} height={32} className="h-8 w-8 rounded-full object-cover shadow-xs" />
           <div>
             <h1 className="font-bold text-sm leading-none">Deutsch</h1>
-            <span className="text-[10px] text-indigo-300">Learning Helper</span>
+            <span className="text-[10px] text-indigo-300">Learning With Mishrat</span>
           </div>
         </div>
 
@@ -1015,12 +1014,10 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
         <div className="flex-1 min-h-0 overflow-y-auto pr-1">
           {/* Brand logo */}
           <div className="flex items-center gap-3 pb-6 mb-6 border-b border-slate-800">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-extrabold text-white text-base shadow-md">
-              DL
-            </div>
+            <Image src="/asset/logo.jpg" alt="Deutsch logo" width={40} height={40} className="h-10 w-10 rounded-xl object-cover shadow-md" />
             <div>
               <strong className="block text-slate-100 text-base leading-tight">Deutsch</strong>
-              <small className="text-xs text-indigo-300">Learning Helper</small>
+              <small className="text-xs text-indigo-300">Learning With Mishrat</small>
             </div>
           </div>
 
@@ -1067,9 +1064,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
         {activeView === "profile" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <article className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="w-20 h-20 rounded-full bg-indigo-600 text-white font-extrabold text-3xl flex items-center justify-center shadow-lg mb-4">
-                {(profile?.account?.name || profile?.account?.email || "User").slice(0, 1).toUpperCase()}
-              </div>
+              <Image src="/asset/homePage.jpg" alt="Deutsch Learning With Mishrat" width={96} height={96} className="h-24 w-24 rounded-2xl object-cover shadow-lg mb-4" />
               <h2 className="text-xl font-bold text-slate-900">{profile?.account?.name || profile?.account?.email || "User"}</h2>
               <p className="text-sm text-slate-500 mt-1">{profile?.account?.email}</p>
               <span className="mt-4 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">

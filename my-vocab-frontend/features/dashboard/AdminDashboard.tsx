@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
@@ -120,12 +121,10 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       {/* Mobile Top Header */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-sm text-white shadow-xs">
-            DL
-          </div>
+          <Image src="/asset/logo.jpg" alt="Deutsch logo" width={32} height={32} className="h-8 w-8 rounded-full object-cover shadow-xs" />
           <div>
             <h1 className="font-bold text-sm leading-none">Deutsch</h1>
-            <span className="text-[10px] text-indigo-300">Admin Console</span>
+            <span className="text-[10px] text-indigo-300">Learning With Mishrat</span>
           </div>
         </div>
 
@@ -192,12 +191,10 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       <aside className="hidden md:flex w-64 flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen p-5 flex-col justify-between border-r border-slate-800 shadow-lg sticky top-0 h-screen">
         <div>
           <div className="flex items-center gap-3 pb-6 mb-6 border-b border-slate-800">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-extrabold text-white text-base shadow-md">
-              DL
-            </div>
+            <Image src="/asset/logo.jpg" alt="Deutsch logo" width={40} height={40} className="h-10 w-10 rounded-xl object-cover shadow-md" />
             <div>
               <strong className="block text-slate-100 text-base leading-tight">Deutsch</strong>
-              <small className="text-xs text-indigo-300">Admin Console</small>
+              <small className="text-xs text-indigo-300">Learning With Mishrat</small>
             </div>
           </div>
 
