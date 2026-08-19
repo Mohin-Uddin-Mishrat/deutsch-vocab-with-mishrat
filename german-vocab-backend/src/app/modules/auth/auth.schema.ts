@@ -18,6 +18,8 @@ const authSchema = new Schema<TAccount>({
     isVerified: { type: Boolean, default: true },
     learned: { type: [personalVocabularySchema], default: [] },
     pending: { type: [personalVocabularySchema], default: [] },
+    lastVocabularyActivityAt: { type: Date },
+    lastVocabularyActivityType: { type: String, enum: ["LEARNED", "PENDING"] },
 }, {
     versionKey: false,
     timestamps: true

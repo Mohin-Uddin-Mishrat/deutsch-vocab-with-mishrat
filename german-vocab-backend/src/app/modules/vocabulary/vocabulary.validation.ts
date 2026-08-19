@@ -8,4 +8,8 @@ const uploadVocabulary = z.object({
     input: z.string().trim().min(1, 'Vocabulary input is required'),
 });
 
-export const vocabulary_validation = { createCategory, uploadVocabulary };
+const updateVocabularyBangla = z.object({
+    bangla: z.string().trim().min(1, 'Bangla meaning is required').max(500),
+});
+
+export const vocabulary_validation = { createCategory, uploadVocabulary, updateVocabularyBangla };

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/redux/store";
 import { useGetMeQuery, useLoginMutation, useRegisterMutation } from "@/redux/services/authApi";
@@ -16,24 +17,31 @@ const getErrorMessage = (error: unknown) =>
     : "The request could not be completed. Please try again.";
 
 export default function AuthScreen() {
+  const pathname = usePathname();
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { accessToken } = useSelector((state: RootState) => state.auth);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [message, setMessage] = useState<string | null>(null);
+  const [sessionRestored, setSessionRestored] = useState(false);
   const [login, loginState] = useLoginMutation();
   const [register, registerState] = useRegisterMutation();
-  const { data: profile, error: profileError } = useGetMeQuery(undefined, { skip: !accessToken });
+  const { data: profile, error: profileError, isFetching: profileFetching } = useGetMeQuery(undefined, { skip: !accessToken });
 
   useEffect(() => {
     const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
     if (token && !accessToken) dispatch(setCredentials({ accessToken: token }));
+    setSessionRestored(true);
   }, [accessToken, dispatch]);
 
   useEffect(() => {
     if (profile?.account.role && accessToken) {
       dispatch(setCredentials({ accessToken, role: profile.account.role }));
+      const dashboardPath = profile.account.role === "ADMIN" ? "/admin" : "/user";
+      const isCorrectDashboard = pathname === dashboardPath || pathname.startsWith(`${dashboardPath}/`);
+      if (!isCorrectDashboard) router.replace(dashboardPath);
     }
-  }, [accessToken, dispatch, profile?.account.role]);
+  }, [accessToken, dispatch, pathname, profile?.account.role, router]);
 
   useEffect(() => {
     if (profileError) {
@@ -64,10 +72,22 @@ export default function AuthScreen() {
   function signOut() {
     window.localStorage.removeItem(TOKEN_STORAGE_KEY);
     dispatch(clearCredentials());
+    router.replace("/");
     setMessage("You have been signed out.");
   }
 
   const isSubmitting = loginState.isLoading || registerState.isLoading;
+
+  if (!sessionRestored || (accessToken && profileFetching && !profileError)) {
+    return (
+      <main className="min-h-screen grid place-items-center p-4 bg-gradient-to-br from-indigo-50 via-slate-50 to-indigo-100/60">
+        <div className="flex flex-col items-center gap-3 text-slate-600" role="status">
+          <span className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
+          <span className="text-sm font-medium">Restoring your session…</span>
+        </div>
+      </main>
+    );
+  }
 
   if (accessToken && profile?.account.role === "USER") {
     return <UserDashboard profile={profile} onSignOut={signOut} />;

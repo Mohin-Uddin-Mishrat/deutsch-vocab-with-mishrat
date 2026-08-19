@@ -9,6 +9,8 @@ export type TAccount = {
     isVerified?: boolean,
     learned?: TPersonalVocabulary[];
     pending?: TPersonalVocabulary[];
+    lastVocabularyActivityAt?: Date;
+    lastVocabularyActivityType?: "LEARNED" | "PENDING";
 }
 
 export type TPersonalVocabulary = {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useDeletePersonalVocabularyMutation, useUploadPersonalVocabularyMutation } from "@/redux/services/authApi";
+import { type FormEvent, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCreateCategoryMutation, useDeleteCategoryMutation, useDeletePersonalVocabulariesMutation, useDeletePersonalVocabularyMutation, useUploadCategoryVocabularyMutation, useUploadPersonalVocabularyMutation } from "@/redux/services/authApi";
 import type { Category, PersonalVocabulary, Profile } from "@/redux/features/auth/types";
 import VocabularyGraph from "./VocabularyGraph";
 
-type View = "profile" | "learned" | "pending" | `category:${string}`;
+type View = "profile" | "my-categories" | "learned" | "pending" | `category:${string}` | `own-category:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
 
 const vocabularyKey = (categoryId: string, index: number) => `${categoryId}:${index}`;
@@ -83,6 +84,7 @@ function PaginationControls({
 
 function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabulary[]; listType: "learned" | "pending" }) {
   const [deletePersonalVocabulary, deleteState] = useDeletePersonalVocabularyMutation();
+  const [deletePersonalVocabularies, deleteManyState] = useDeletePersonalVocabulariesMutation();
   const [uploadPersonalVocabulary, uploadState] = useUploadPersonalVocabularyMutation();
   const [hideBangla, setHideBangla] = useState(false);
   const [hideGerman, setHideGerman] = useState(false);
@@ -96,6 +98,7 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
   const displayListType = listType === "pending" ? "today task" : listType;
   const canDelete = listType === "learned";
   const canMove = listType === "pending";
+  const canSelect = canMove || canDelete;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -115,7 +118,7 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
   const paginatedItems = filteredItems.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const allSelected =
-    filteredItems.length > 0 && filteredItems.every((_item, index) => selected.has(`item:${index}`));
+    filteredItems.length > 0 && filteredItems.every((item) => selected.has(`item:${items.indexOf(item)}`));
 
   function toggleItem(index: number) {
     const key = `item:${index}`;
@@ -128,7 +131,7 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
   }
 
   function toggleAll() {
-    setSelected(() => (allSelected ? new Set() : new Set(filteredItems.map((_item, index) => `item:${index}`))));
+    setSelected(() => (allSelected ? new Set() : new Set(filteredItems.map((item) => `item:${items.indexOf(item)}`))));
   }
 
   async function moveToLearned() {
@@ -137,6 +140,12 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
       .map((item) => `${item.bangla} = ${item.english.join(" + ")}${item.sentence ? ` <${item.sentence}>` : ""}`)
       .join(" | \n");
     await uploadPersonalVocabulary({ listType: "learned", input }).unwrap();
+    setSelected(new Set());
+  }
+
+  async function deleteSelected() {
+    const bangla = items.filter((_item, index) => selected.has(`item:${index}`)).map((item) => item.bangla);
+    await deletePersonalVocabularies({ listType, bangla }).unwrap();
     setSelected(new Set());
   }
 
@@ -163,7 +172,7 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {canMove && filteredItems.length > 0 && (
+          {canSelect && filteredItems.length > 0 && (
             <label className="inline-flex items-center gap-2 text-xs md:text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors">
               <input
                 type="checkbox"
@@ -259,6 +268,20 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
         </div>
       )}
 
+      {selected.size > 0 && canDelete && (
+        <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 text-red-950 flex items-center justify-between flex-wrap gap-3">
+          <span className="text-xs md:text-sm font-semibold">{selected.size} item(s) selected</span>
+          <button
+            type="button"
+            disabled={deleteManyState.isLoading}
+            onClick={() => deleteSelected()}
+            className="px-3.5 py-1.5 text-xs md:text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg shadow-xs transition-colors"
+          >
+            {deleteManyState.isLoading ? "Deleting..." : "Delete selected"}
+          </button>
+        </div>
+      )}
+
       {/* Pagination at the TOP of the page */}
       <PaginationControls
         currentPage={safePage}
@@ -285,8 +308,8 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
       ) : (
         /* Responsive Grid list of items */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mt-4">
-          {paginatedItems.map((item, pageIdx) => {
-            const realIndex = (safePage - 1) * PAGE_SIZE + pageIdx;
+          {paginatedItems.map((item) => {
+            const realIndex = items.indexOf(item);
             const key = `item:${realIndex}`;
             const showSentence = shownSentences.has(key);
 
@@ -297,7 +320,7 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
               >
                 <div className="flex items-center justify-between gap-3 min-w-0">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1 flex-wrap">
-                    {canMove && (
+                    {canSelect && (
                       <input
                         className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer accent-indigo-600 flex-shrink-0"
                         type="checkbox"
@@ -666,31 +689,150 @@ function CategoryPanel({ category, learnedBangla }: { category: Category; learne
   );
 }
 
+function PersonalCategoryManager({ categories }: { categories: Category[] }) {
+  const [createCategory, createState] = useCreateCategoryMutation();
+  const [uploadVocabulary, uploadState] = useUploadCategoryVocabularyMutation();
+  const [deleteCategory, deleteState] = useDeleteCategoryMutation();
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const getErrorMessage = (error: unknown) =>
+    typeof error === "object" && error && "data" in error
+      ? ((error as { data?: { message?: string } }).data?.message ?? "Request failed")
+      : "Request failed";
+
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await createCategory({ name: String(form.get("name") ?? "").trim() }).unwrap();
+      event.currentTarget.reset();
+      setNotice("Your private category was created.");
+    } catch (error) {
+      setNotice(getErrorMessage(error));
+    }
+  }
+
+  async function upload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const bangla = String(form.get("bangla") ?? "").trim();
+    const german = String(form.get("german") ?? "").trim();
+    try {
+      const result = await uploadVocabulary({ categoryId: String(form.get("categoryId")), input: `${bangla} = ${german}` }).unwrap();
+      event.currentTarget.reset();
+      setNotice(`${result.created} word(s) added; ${result.updated} updated.`);
+    } catch (error) {
+      setNotice(getErrorMessage(error));
+    }
+  }
+
+  async function remove(categoryId: string) {
+    if (!window.confirm("Delete this private category and all its vocabulary?")) return;
+    try {
+      await deleteCategory(categoryId).unwrap();
+      setNotice("Private category deleted.");
+    } catch (error) {
+      setNotice(getErrorMessage(error));
+    }
+  }
+
+  return (
+    <section className="space-y-6">
+      {notice && <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-950 text-sm flex justify-between gap-3"><span>{notice}</span><button type="button" onClick={() => setNotice(null)} className="font-bold">×</button></div>}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <article className="p-5 md:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Create a private category</h2>
+          <p className="mt-1 text-sm text-slate-500">Only you can use this category in your learning dashboard.</p>
+          <form className="mt-4 space-y-3" onSubmit={create}>
+            <input name="name" required maxLength={100} placeholder="e.g. Travel vocabulary" className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500" />
+            <button disabled={createState.isLoading} className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-50">{createState.isLoading ? "Creating..." : "Create category"}</button>
+          </form>
+        </article>
+        <article className="p-5 md:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Add vocabulary</h2>
+          <p className="mt-1 text-sm text-slate-500">Add the Bangla meaning and German word separately.</p>
+          <form className="mt-4 space-y-3" onSubmit={upload}>
+            <select name="categoryId" required defaultValue="" className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"><option value="" disabled>Select your category</option>{categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}</select>
+            <div>
+              <label className="block mb-1 text-xs font-semibold text-slate-700">Bangla meaning</label>
+              <input name="bangla" required placeholder="e.g. খাবার" className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label className="block mb-1 text-xs font-semibold text-slate-700">German word</label>
+              <input name="german" required placeholder="e.g. das Essen" className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <button disabled={!categories.length || uploadState.isLoading} className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-50">{uploadState.isLoading ? "Adding..." : "Add vocabulary"}</button>
+          </form>
+        </article>
+      </div>
+      <article className="p-5 md:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900">My private categories</h2>
+        {categories.length ? <div className="mt-3 divide-y divide-slate-100">{categories.map((category) => <div key={category._id} className="py-3 flex items-center justify-between gap-4"><div><strong className="block text-sm text-slate-900">{category.name}</strong><span className="text-xs text-slate-500">{category.vocabularies.length} vocabulary item(s)</span></div><button type="button" disabled={deleteState.isLoading} onClick={() => remove(category._id)} className="px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg disabled:opacity-50">Delete</button></div>)}</div> : <p className="mt-3 text-sm text-slate-500">You have not created any private categories yet.</p>}
+      </article>
+    </section>
+  );
+}
+
 export default function UserDashboard({ profile, onSignOut }: Props) {
-  const [activeView, setActiveView] = useState<View>("profile");
+  const pathname = usePathname();
+  const router = useRouter();
+  const activeView: View = pathname === "/user/learned"
+    ? "learned"
+    : pathname === "/user/pending"
+      ? "pending"
+      : pathname === "/user/categories"
+        ? "my-categories"
+        : pathname.startsWith("/user/categories/own/")
+          ? `own-category:${pathname.slice("/user/categories/own/".length)}`
+          : pathname.startsWith("/user/categories/shared/")
+            ? `category:${pathname.slice("/user/categories/shared/".length)}`
+            : "profile";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [myCategorySearchQuery, setMyCategorySearchQuery] = useState("");
+  const [myVocabularyOpen, setMyVocabularyOpen] = useState(true);
+  const [sharedVocabularyOpen, setSharedVocabularyOpen] = useState(true);
+  const [conditionOpen, setConditionOpen] = useState(true);
 
   const adminCategories = profile.categories.admin ?? [];
+  const ownCategories = profile.categories.own ?? [];
   const learnedBangla = new Set(profile.account.learned.map((item) => item.bangla));
   const selectedCategoryId = activeView.startsWith("category:") ? activeView.slice("category:".length) : null;
+  const selectedOwnCategoryId = activeView.startsWith("own-category:") ? activeView.slice("own-category:".length) : null;
   const selectedCategory = adminCategories.find((category) => category._id === selectedCategoryId);
+  const selectedOwnCategory = ownCategories.find((category) => category._id === selectedOwnCategoryId);
 
   const filteredCategories = adminCategories.filter((category) =>
     category.name.toLowerCase().includes(categorySearchQuery.toLowerCase().trim())
+  );
+  const filteredOwnCategories = ownCategories.filter((category) =>
+    category.name.toLowerCase().includes(myCategorySearchQuery.toLowerCase().trim())
   );
 
   const title =
     activeView === "profile"
       ? "Profile"
+      : activeView === "my-categories"
+      ? "My private categories"
       : activeView === "learned"
       ? "Learned"
       : activeView === "pending"
       ? "Today task"
-      : selectedCategory?.name ?? "Vocabulary";
+      : selectedCategory?.name ?? selectedOwnCategory?.name ?? "Vocabulary";
 
   function handleNavigate(view: View) {
-    setActiveView(view);
+    const path = view === "profile"
+      ? "/user"
+      : view === "my-categories"
+        ? "/user/categories"
+        : view === "learned"
+          ? "/user/learned"
+          : view === "pending"
+            ? "/user/pending"
+            : view.startsWith("own-category:")
+              ? `/user/categories/own/${view.slice("own-category:".length)}`
+              : `/user/categories/shared/${view.slice("category:".length)}`;
+    router.push(path);
     setMobileMenuOpen(false);
   }
 
@@ -712,16 +854,28 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       </div>
 
       <div>
-        <div className="flex items-center justify-between px-3 mb-2">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Vocabularies</p>
+        <button type="button" onClick={() => setMyVocabularyOpen(!myVocabularyOpen)} aria-expanded={myVocabularyOpen} className="w-full px-3 mb-2 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-200">
+          <span>My vocabulary</span><span>{myVocabularyOpen ? "⌃" : "⌄"}</span>
+        </button>
+        {myVocabularyOpen && <div className="space-y-1">
+          <button type="button" className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${activeView === "my-categories" ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`} onClick={() => handleNavigate("my-categories")}><span>My categories</span><span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${activeView === "my-categories" ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{ownCategories.length}</span></button>
+          {ownCategories.length > 3 && <input type="text" value={myCategorySearchQuery} onChange={(e) => setMyCategorySearchQuery(e.target.value)} placeholder="Filter my categories..." className="w-full mt-1 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg placeholder-slate-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500" />}
+          {filteredOwnCategories.map((category) => <button type="button" key={category._id} onClick={() => handleNavigate(`own-category:${category._id}`)} className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${selectedOwnCategoryId === category._id ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><span className="truncate">{category.name}</span><span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${selectedOwnCategoryId === category._id ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{category.vocabularies.length}</span></button>)}
+        </div>}
+      </div>
+
+      <div>
+        <button type="button" onClick={() => setSharedVocabularyOpen(!sharedVocabularyOpen)} aria-expanded={sharedVocabularyOpen} className="w-full px-3 mb-2 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-200">
+          <span>Vocabularies</span>
           {adminCategories.length > 0 && (
             <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md font-semibold">
               {adminCategories.length}
             </span>
           )}
-        </div>
+          <span>{sharedVocabularyOpen ? "⌃" : "⌄"}</span>
+        </button>
 
-        {adminCategories.length > 3 && (
+        {sharedVocabularyOpen && adminCategories.length > 3 && (
           <div className="px-1 mb-2">
             <input
               type="text"
@@ -733,7 +887,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
           </div>
         )}
 
-        <div className="space-y-1">
+        {sharedVocabularyOpen && <div className="space-y-1">
           {filteredCategories.length ? (
             filteredCategories.map((category) => (
               <button
@@ -761,12 +915,12 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
               {adminCategories.length ? "No matching categories" : "No shared categories"}
             </span>
           )}
-        </div>
+        </div>}
       </div>
 
       <div>
-        <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">My condition</p>
-        <div className="space-y-1">
+        <button type="button" onClick={() => setConditionOpen(!conditionOpen)} aria-expanded={conditionOpen} className="w-full px-3 mb-2 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-200"><span>My condition</span><span>{conditionOpen ? "⌃" : "⌄"}</span></button>
+        {conditionOpen && <div className="space-y-1">
           <button
             type="button"
             className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${
@@ -805,7 +959,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
               {profile.account.pending.length}
             </span>
           </button>
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -857,8 +1011,8 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen p-5 flex-col justify-between border-r border-slate-800 shadow-lg sticky top-0 h-screen">
-        <div>
+      <aside className="hidden md:flex w-64 flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen p-5 flex-col border-r border-slate-800 shadow-lg sticky top-0 h-screen overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
           {/* Brand logo */}
           <div className="flex items-center gap-3 pb-6 mb-6 border-b border-slate-800">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-extrabold text-white text-base shadow-md">
@@ -876,7 +1030,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
 
         {/* Sign out */}
         <button
-          className="w-full py-2.5 px-4 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-semibold transition-all flex items-center justify-center gap-2"
+          className="mt-4 flex-shrink-0 w-full py-2.5 px-4 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-semibold transition-all flex items-center justify-center gap-2"
           type="button"
           onClick={onSignOut}
         >
@@ -962,11 +1116,21 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
           <PersonalVocabularyPanel items={profile.account.pending} listType="pending" />
         )}
 
+        {activeView === "my-categories" && <PersonalCategoryManager categories={ownCategories} />}
+
         {selectedCategory && (
           <CategoryPanel
             key={selectedCategory._id}
             category={selectedCategory}
             learnedBangla={learnedBangla}
+          />
+        )}
+
+        {selectedOwnCategory && (
+          <CategoryPanel
+            key={selectedOwnCategory._id}
+            category={selectedOwnCategory}
+            learnedBangla={new Set()}
           />
         )}
       </main>

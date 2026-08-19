@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
@@ -9,8 +10,9 @@ import {
   useUploadCategoryVocabularyMutation,
 } from "@/redux/services/authApi";
 import type { Profile } from "@/redux/features/auth/types";
+import AdminVocabularyPanel from "./AdminVocabularyPanel";
 
-type AdminView = "overview" | "categories" | "users";
+type AdminView = "overview" | "categories" | "users" | `category:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
 
 const messageFromError = (error: unknown) =>
@@ -18,10 +20,24 @@ const messageFromError = (error: unknown) =>
     ? ((error as { data?: { message?: string } }).data?.message ?? "Request failed")
     : "Request failed";
 
+const formatVocabularyActivity = (date?: string) =>
+  date
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(date))
+    : "No activity yet";
+
 export default function AdminDashboard({ profile, onSignOut }: Props) {
-  const [view, setView] = useState<AdminView>("overview");
+  const pathname = usePathname();
+  const router = useRouter();
+  const view: AdminView = pathname === "/admin/users"
+    ? "users"
+    : pathname === "/admin/categories"
+      ? "categories"
+      : pathname.startsWith("/admin/categories/")
+        ? `category:${pathname.slice("/admin/categories/".length)}`
+        : "overview";
   const [notice, setNotice] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
 
   const [createCategory, createState] = useCreateCategoryMutation();
   const [uploadCategoryVocabulary, uploadState] = useUploadCategoryVocabularyMutation();
@@ -30,6 +46,9 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
   const { data: users = [], isFetching: usersLoading } = useGetUsersQuery(undefined, { skip: view !== "users" });
 
   const categories = profile.categories.all ?? [];
+  const selectedCategoryId = view.startsWith("category:") ? view.slice("category:".length) : null;
+  const selectedCategory = categories.find((category) => category._id === selectedCategoryId);
+  const filteredCategories = categories.filter((category) => category.name.toLowerCase().includes(categorySearchQuery.toLowerCase().trim()));
 
   async function createCategoryHandler(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,9 +96,24 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
   }
 
   function handleNavigate(targetView: AdminView) {
-    setView(targetView);
+    const path = targetView === "overview"
+      ? "/admin"
+      : targetView === "categories"
+        ? "/admin/categories"
+        : targetView === "users"
+          ? "/admin/users"
+          : `/admin/categories/${targetView.slice("category:".length)}`;
+    router.push(path);
     setMobileMenuOpen(false);
   }
+
+  const categoryLinks = (mobile = false) => (
+    <div className={mobile ? "mt-6" : "mt-6"}>
+      <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Vocabularies <span className="float-right rounded bg-slate-700 px-1.5">{categories.length}</span></p>
+      <input value={categorySearchQuery} onChange={(event) => setCategorySearchQuery(event.target.value)} placeholder="Filter categories..." className="w-full mb-2 px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 bg-slate-800 border border-slate-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500" />
+      <div className="space-y-1 max-h-64 overflow-y-auto pr-1">{filteredCategories.map((category) => <button key={category._id} onClick={() => handleNavigate(`category:${category._id}`)} className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${selectedCategoryId === category._id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}><span className="truncate">{category.name}</span><span className="ml-2 rounded bg-slate-700/70 px-1.5 py-0.5 text-[10px]">{category.vocabularies.length}</span></button>)}</div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 max-w-full overflow-x-hidden">
@@ -142,6 +176,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
             >
               Users
             </button>
+            {categoryLinks(true)}
           </div>
 
           <button
@@ -174,7 +209,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     view === "overview" ? "bg-indigo-600 text-white font-semibold" : "text-slate-300 hover:bg-slate-800"
                   }`}
-                  onClick={() => setView("overview")}
+                  onClick={() => handleNavigate("overview")}
                 >
                   Overview
                 </button>
@@ -184,7 +219,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
                       ? "bg-indigo-600 text-white font-semibold"
                       : "text-slate-300 hover:bg-slate-800"
                   }`}
-                  onClick={() => setView("categories")}
+                  onClick={() => handleNavigate("categories")}
                 >
                   Categories
                 </button>
@@ -192,11 +227,12 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     view === "users" ? "bg-indigo-600 text-white font-semibold" : "text-slate-300 hover:bg-slate-800"
                   }`}
-                  onClick={() => setView("users")}
+                  onClick={() => handleNavigate("users")}
                 >
                   Users
                 </button>
               </div>
+              {categoryLinks()}
             </div>
           </nav>
         </div>
@@ -223,7 +259,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Administrator Dashboard</span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-              {view === "overview" ? "Overview" : view === "categories" ? "Category Management" : "User Management"}
+              {view === "overview" ? "Overview" : view === "categories" ? "Category Management" : view === "users" ? "User Management" : selectedCategory?.name ?? "Vocabulary"}
             </h1>
           </div>
 
@@ -361,30 +397,65 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           </div>
         )}
 
+        {selectedCategory && <AdminVocabularyPanel key={selectedCategory._id} category={selectedCategory} onNotice={setNotice} />}
+
         {view === "users" && (
           <section className="p-5 md:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900 mb-4">All Users</h2>
             {usersLoading ? (
               <p className="text-sm text-slate-500">Loading users…</p>
             ) : users.length ? (
-              <div className="divide-y divide-slate-100">
-                {users.map((user) => (
-                  <div className="py-3 flex items-center justify-between gap-4" key={user._id}>
-                    <div>
-                      <strong className="block text-sm font-semibold text-slate-900">{user.name}</strong>
-                      <small className="text-xs text-slate-500">
-                        {user.email} · {user.accountStatus}
-                      </small>
-                    </div>
-                    <button
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
-                      disabled={deleteUserState.isLoading}
-                      onClick={() => removeUser(user._id)}
-                    >
-                      Delete user
-                    </button>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px] text-left">
+                  <thead className="border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th scope="col" className="px-3 py-3">User</th>
+                      <th scope="col" className="px-3 py-3">Status</th>
+                      <th scope="col" className="px-3 py-3 text-center">Learned</th>
+                      <th scope="col" className="px-3 py-3 text-center">Pending</th>
+                      <th scope="col" className="px-3 py-3">Last activity</th>
+                      <th scope="col" className="px-3 py-3"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {users.map((user) => (
+                      <tr key={user._id} className="hover:bg-slate-50/70">
+                        <td className="px-3 py-3">
+                          <strong className="block text-sm font-semibold text-slate-900">{user.name}</strong>
+                          <small className="text-xs text-slate-500">{user.email}</small>
+                        </td>
+                        <td className="px-3 py-3 text-sm text-slate-600">{user.accountStatus}</td>
+                        <td className="px-3 py-3 text-center">
+                          <span className="inline-flex min-w-8 justify-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                            {user.learnedVocabularyCount}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <span className="inline-flex min-w-8 justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">
+                            {user.pendingVocabularyCount}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="block text-sm text-slate-700">{formatVocabularyActivity(user.lastVocabularyActivityAt)}</span>
+                          {user.lastVocabularyActivityType && (
+                            <span className="text-xs text-slate-500">
+                              Added to {user.lastVocabularyActivityType === "LEARNED" ? "learned" : "today's task"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <button
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
+                            disabled={deleteUserState.isLoading}
+                            onClick={() => removeUser(user._id)}
+                          >
+                            Delete user
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <p className="text-sm text-slate-500 text-center py-6">There are no active user accounts.</p>

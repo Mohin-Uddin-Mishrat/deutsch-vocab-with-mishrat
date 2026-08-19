@@ -24,6 +24,11 @@ export const authApi = createApi({
       transformResponse: (response: ApiResponse<{ deleted: string; listType: "learned" | "pending" }>) => response.data,
       invalidatesTags: ["Profile"],
     }),
+    deletePersonalVocabularies: builder.mutation<{ deleted: number; listType: "learned" | "pending" }, { listType: "learned" | "pending"; bangla: string[] }>({
+      query: ({ listType, bangla }) => ({ url: `/auth/vocabularies/${listType}/bulk`, method: "DELETE", body: { bangla } }),
+      transformResponse: (response: ApiResponse<{ deleted: number; listType: "learned" | "pending" }>) => response.data,
+      invalidatesTags: ["Profile"],
+    }),
     createCategory: builder.mutation<Category, { name: string }>({
       query: (body) => ({ url: "/vocabulary/categories", method: "POST", body }),
       transformResponse: (response: ApiResponse<Category>) => response.data,
@@ -32,6 +37,15 @@ export const authApi = createApi({
     uploadCategoryVocabulary: builder.mutation<{ processed: number; created: number; updated: number }, { categoryId: string; input: string }>({
       query: ({ categoryId, input }) => ({ url: `/vocabulary/categories/${categoryId}/vocabularies`, method: "POST", body: { input } }),
       transformResponse: (response: ApiResponse<{ processed: number; created: number; updated: number }>) => response.data,
+      invalidatesTags: ["Profile"],
+    }),
+    updateCategoryVocabularyBangla: builder.mutation<Category, { categoryId: string; vocabularyIndex: number; bangla: string }>({
+      query: ({ categoryId, vocabularyIndex, bangla }) => ({
+        url: `/vocabulary/categories/${categoryId}/vocabularies/${vocabularyIndex}`,
+        method: "PATCH",
+        body: { bangla },
+      }),
+      transformResponse: (response: ApiResponse<Category>) => response.data,
       invalidatesTags: ["Profile"],
     }),
     deleteCategory: builder.mutation<null, string>({
@@ -51,4 +65,4 @@ export const authApi = createApi({
     }),
   })
 });
-export const { useGetMeQuery, useLoginMutation, useRegisterMutation, useUploadPersonalVocabularyMutation, useDeletePersonalVocabularyMutation, useCreateCategoryMutation, useUploadCategoryVocabularyMutation, useDeleteCategoryMutation, useGetUsersQuery, useDeleteUserMutation, useGetProgressQuery } = authApi;
+export const { useGetMeQuery, useLoginMutation, useRegisterMutation, useUploadPersonalVocabularyMutation, useDeletePersonalVocabularyMutation, useDeletePersonalVocabulariesMutation, useCreateCategoryMutation, useUploadCategoryVocabularyMutation, useUpdateCategoryVocabularyBanglaMutation, useDeleteCategoryMutation, useGetUsersQuery, useDeleteUserMutation, useGetProgressQuery } = authApi;

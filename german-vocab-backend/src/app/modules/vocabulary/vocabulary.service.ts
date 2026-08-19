@@ -130,6 +130,23 @@ const upload_vocabulary_into_category = async (categoryId: string, input: string
     return { processed: entries.length, created, updated };
 };
 
+const update_vocabulary_bangla_in_category = async (categoryId: string, vocabularyIndex: string, bangla: string, requester: Requester) => {
+    const category = await getAccessibleCategory(categoryId, requester, false, true);
+    const index = Number(vocabularyIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= category.vocabularies.length) {
+        throw new AppError('Vocabulary was not found in this category', httpStatus.NOT_FOUND);
+    }
+
+    const nextBangla = bangla.trim();
+    const current = category.vocabularies[index];
+    if (category.vocabularies.some((vocabulary, itemIndex) => itemIndex !== index && vocabulary.bangla === nextBangla)) {
+        throw new AppError('Another vocabulary item already uses this Bangla meaning', httpStatus.CONFLICT);
+    }
+    current.bangla = nextBangla;
+    await category.save();
+    return serializeCategory(category);
+};
+
 const delete_category_from_db = async (categoryId: string, requester: Requester) => {
     const category = await getAccessibleCategory(categoryId, requester, false);
     await Category_Model.findByIdAndDelete(category._id);
@@ -148,4 +165,4 @@ const get_category_list_from_db = async (requester: Requester) => {
     return { own, admin };
 };
 
-export const vocabulary_services = { create_category_into_db, upload_vocabulary_into_category, delete_category_from_db, get_specific_category_from_db, get_category_list_from_db };
+export const vocabulary_services = { create_category_into_db, upload_vocabulary_into_category, update_vocabulary_bangla_in_category, delete_category_from_db, get_specific_category_from_db, get_category_list_from_db };

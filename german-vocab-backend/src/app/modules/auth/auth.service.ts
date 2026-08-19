@@ -206,6 +206,8 @@ const upload_personal_vocabulary_into_db = async (email: string, listType: strin
         const learnedBanglaSet = new Set(entries.map(e => e.bangla));
         account.pending = (account.pending || []).filter(item => !learnedBanglaSet.has(item.bangla));
     }
+    account.lastVocabularyActivityAt = new Date();
+    account.lastVocabularyActivityType = listType === 'learned' ? 'LEARNED' : 'PENDING';
     await account.save();
 
     // Record daily progress when new vocabulary is added to 'learned'
@@ -232,10 +234,36 @@ const delete_personal_vocabulary_from_db = async (email: string, listType: strin
     return { deleted: bangla, listType };
 };
 
-const get_all_users_from_db = async () => Account_Model.find({ role: 'USER', isDeleted: false })
-    .select('_id name email accountStatus isVerified createdAt')
-    .sort({ createdAt: -1 })
-    .lean();
+const delete_personal_vocabularies_from_db = async (email: string, listType: string, bangla: string[]) => {
+    if (listType !== 'learned' && listType !== 'pending') throw new AppError('Vocabulary list must be learned or pending', httpStatus.BAD_REQUEST);
+    const account = await isAccountExist(email);
+    const selected = new Set(bangla);
+    const list = account[listType] || [];
+    const nextList = list.filter(vocabulary => !selected.has(vocabulary.bangla));
+    const deleted = list.length - nextList.length;
+    if (!deleted) throw new AppError('None of the selected vocabulary items were found', httpStatus.NOT_FOUND);
+    account[listType] = nextList;
+    await account.save();
+    return { deleted, listType };
+};
+
+const get_all_users_from_db = async () => Account_Model.aggregate([
+    { $match: { role: 'USER', isDeleted: false } },
+    {
+        $project: {
+            name: 1,
+            email: 1,
+            accountStatus: 1,
+            isVerified: 1,
+            createdAt: 1,
+            learnedVocabularyCount: { $size: { $ifNull: ['$learned', []] } },
+            pendingVocabularyCount: { $size: { $ifNull: ['$pending', []] } },
+            lastVocabularyActivityAt: 1,
+            lastVocabularyActivityType: 1,
+        },
+    },
+    { $sort: { createdAt: -1 } },
+]);
 
 const delete_user_from_db = async (userId: string) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) throw new AppError('Invalid user ID', httpStatus.BAD_REQUEST);
@@ -464,6 +492,7 @@ export const auth_services = {
     get_my_profile_from_db,
     upload_personal_vocabulary_into_db,
     delete_personal_vocabulary_from_db,
+    delete_personal_vocabularies_from_db,
     get_all_users_from_db,
     delete_user_from_db,
     refresh_token_from_db,

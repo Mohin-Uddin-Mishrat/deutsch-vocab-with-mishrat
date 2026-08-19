@@ -21,6 +21,12 @@ authRoute.post(
     auth_controllers.upload_personal_vocabulary,
 );
 authRoute.delete(
+    '/vocabularies/:listType/bulk',
+    auth('ADMIN', 'USER'),
+    RequestValidator(auth_validation.deletePersonalVocabularies),
+    auth_controllers.delete_personal_vocabularies,
+);
+authRoute.delete(
     '/vocabularies/:listType',
     auth('ADMIN', 'USER'),
     RequestValidator(auth_validation.deletePersonalVocabulary),

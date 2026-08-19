@@ -32,6 +32,9 @@ const uploadPersonalVocabulary = z.object({
 const deletePersonalVocabulary = z.object({
     bangla: z.string().trim().min(1, 'Bangla vocabulary is required'),
 });
+const deletePersonalVocabularies = z.object({
+    bangla: z.array(z.string().trim().min(1)).min(1, 'Select at least one vocabulary item').max(500),
+});
 
 export const auth_validation = {
     register_validation,
@@ -42,4 +45,5 @@ export const auth_validation = {
     verified_account,
     uploadPersonalVocabulary,
     deletePersonalVocabulary,
+    deletePersonalVocabularies,
 }

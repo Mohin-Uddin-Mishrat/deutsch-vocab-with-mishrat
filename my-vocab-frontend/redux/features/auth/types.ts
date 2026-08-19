@@ -5,6 +5,17 @@ export type LoginPayload = Pick<RegisterPayload, "email" | "password">;
 export type PersonalVocabulary = { bangla: string; english: string[]; sentence?: string };
 export type CategoryVocabulary = { bangla: string; german: string[]; sentence?: string };
 export type Category = { _id: string; name: string; vocabularies: CategoryVocabulary[] };
-export type AdminUser = { _id: string; name: string; email: string; accountStatus: string; isVerified: boolean; createdAt: string };
+export type AdminUser = {
+  _id: string;
+  name: string;
+  email: string;
+  accountStatus: string;
+  isVerified: boolean;
+  createdAt: string;
+  learnedVocabularyCount: number;
+  pendingVocabularyCount: number;
+  lastVocabularyActivityAt?: string;
+  lastVocabularyActivityType?: "LEARNED" | "PENDING";
+};
 export type Profile = { account: { _id: string; name: string; email: string; role: UserRole; learned: PersonalVocabulary[]; pending: PersonalVocabulary[] }; categories: { own?: Category[]; admin?: Category[]; all?: Category[] }; categoryNameList: Record<string, unknown> };
 export type ApiResponse<T> = { success: boolean; message: string; data: T; meta: unknown };
