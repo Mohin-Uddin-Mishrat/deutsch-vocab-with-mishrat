@@ -5,6 +5,10 @@ export type LoginPayload = Pick<RegisterPayload, "email" | "password">;
 export type PersonalVocabulary = { bangla: string; english: string[]; sentence?: string };
 export type CategoryVocabulary = { bangla: string; german: string[]; sentence?: string };
 export type Category = { _id: string; name: string; vocabularies: CategoryVocabulary[] };
+export type ExamQuestion = { bangla: string };
+export type ExamAnswer = { bangla: string; expected: string[]; answer: string; correct: boolean };
+export type Exam = { _id: string; total: number; score?: number; createdAt?: string; submittedAt?: string; questions?: ExamQuestion[]; answers?: ExamAnswer[] };
+export type ExamHistory = { _id: string; total: number; score: number; submittedAt: string };
 export type AdminUser = {
   _id: string;
   name: string;

@@ -32,6 +32,10 @@ authRoute.delete(
     RequestValidator(auth_validation.deletePersonalVocabulary),
     auth_controllers.delete_personal_vocabulary,
 );
+authRoute.post('/exams', auth('USER'), auth_controllers.start_exam);
+authRoute.get('/exams', auth('USER'), auth_controllers.get_exam_history);
+authRoute.get('/exams/:examId', auth('USER'), auth_controllers.get_exam);
+authRoute.post('/exams/:examId/submit', auth('USER'), RequestValidator(auth_validation.submitExam), auth_controllers.submit_exam);
 authRoute.get('/users', auth('ADMIN'), auth_controllers.get_all_users);
 authRoute.delete('/users/:userId', auth('ADMIN'), auth_controllers.delete_user);
 

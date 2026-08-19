@@ -3,11 +3,12 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { useCreateCategoryMutation, useDeleteCategoryMutation, useDeletePersonalVocabulariesMutation, useDeletePersonalVocabularyMutation, useUploadCategoryVocabularyMutation, useUploadPersonalVocabularyMutation } from "@/redux/services/authApi";
+import { useCreateCategoryMutation, useDeleteCategoryMutation, useDeletePersonalVocabulariesMutation, useDeletePersonalVocabularyMutation, useStartExamMutation, useUploadCategoryVocabularyMutation, useUploadPersonalVocabularyMutation } from "@/redux/services/authApi";
 import type { Category, PersonalVocabulary, Profile } from "@/redux/features/auth/types";
 import VocabularyGraph from "./VocabularyGraph";
+import { ExamHistoryPanel, ExamPanel } from "./ExamPanel";
 
-type View = "profile" | "my-categories" | "learned" | "pending" | `category:${string}` | `own-category:${string}`;
+type View = "profile" | "my-categories" | "learned" | "pending" | "exams" | `exam:${string}` | `exam-result:${string}` | `category:${string}` | `own-category:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
 
 const vocabularyKey = (categoryId: string, index: number) => `${categoryId}:${index}`;
@@ -83,7 +84,7 @@ function PaginationControls({
   );
 }
 
-function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabulary[]; listType: "learned" | "pending" }) {
+function PersonalVocabularyPanel({ items, listType, onTakeExam }: { items: PersonalVocabulary[]; listType: "learned" | "pending"; onTakeExam?: () => void }) {
   const [deletePersonalVocabulary, deleteState] = useDeletePersonalVocabularyMutation();
   const [deletePersonalVocabularies, deleteManyState] = useDeletePersonalVocabulariesMutation();
   const [uploadPersonalVocabulary, uploadState] = useUploadPersonalVocabularyMutation();
@@ -173,6 +174,11 @@ function PersonalVocabularyPanel({ items, listType }: { items: PersonalVocabular
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {listType === "pending" && onTakeExam && (
+            <button type="button" onClick={onTakeExam} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700">
+              Take an exam
+            </button>
+          )}
           {canSelect && filteredItems.length > 0 && (
             <label className="inline-flex items-center gap-2 text-xs md:text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors">
               <input
@@ -777,17 +783,19 @@ function PersonalCategoryManager({ categories }: { categories: Category[] }) {
 export default function UserDashboard({ profile, onSignOut }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const activeView: View = pathname === "/user/learned"
-    ? "learned"
-    : pathname === "/user/pending"
-      ? "pending"
-      : pathname === "/user/categories"
-        ? "my-categories"
-        : pathname.startsWith("/user/categories/own/")
-          ? `own-category:${pathname.slice("/user/categories/own/".length)}`
-          : pathname.startsWith("/user/categories/shared/")
-            ? `category:${pathname.slice("/user/categories/shared/".length)}`
-            : "profile";
+  const [startExam] = useStartExamMutation();
+  const activeView: View = (() => {
+    if (pathname === "/user/learned") return "learned";
+    if (pathname === "/user/pending") return "pending";
+    if (pathname === "/user/categories") return "my-categories";
+    if (pathname === "/user/exams") return "exams";
+    const resultMatch = pathname.match(/^\/user\/exam\/([^/]+)\/result$/);
+    if (resultMatch) return `exam-result:${resultMatch[1]}`;
+    if (pathname.startsWith("/user/exam/")) return `exam:${pathname.slice("/user/exam/".length)}`;
+    if (pathname.startsWith("/user/categories/own/")) return `own-category:${pathname.slice("/user/categories/own/".length)}`;
+    if (pathname.startsWith("/user/categories/shared/")) return `category:${pathname.slice("/user/categories/shared/".length)}`;
+    return "profile";
+  })();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [myCategorySearchQuery, setMyCategorySearchQuery] = useState("");
@@ -819,22 +827,38 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       ? "Learned"
       : activeView === "pending"
       ? "Today task"
+      : activeView === "exams"
+      ? "Exam history"
+      : activeView.startsWith("exam-result:")
+      ? "Exam result"
+      : activeView.startsWith("exam:")
+      ? "Vocabulary exam"
       : selectedCategory?.name ?? selectedOwnCategory?.name ?? "Vocabulary";
 
   function handleNavigate(view: View) {
-    const path = view === "profile"
-      ? "/user"
-      : view === "my-categories"
-        ? "/user/categories"
-        : view === "learned"
-          ? "/user/learned"
-          : view === "pending"
-            ? "/user/pending"
-            : view.startsWith("own-category:")
-              ? `/user/categories/own/${view.slice("own-category:".length)}`
-              : `/user/categories/shared/${view.slice("category:".length)}`;
+    let path = "/user";
+    if (view === "my-categories") path = "/user/categories";
+    else if (view === "learned") path = "/user/learned";
+    else if (view === "pending") path = "/user/pending";
+    else if (view === "exams") path = "/user/exams";
+    else if (view.startsWith("exam-result:")) path = `/user/exam/${view.slice("exam-result:".length)}/result`;
+    else if (view.startsWith("exam:")) path = `/user/exam/${view.slice("exam:".length)}`;
+    else if (view.startsWith("own-category:")) path = `/user/categories/own/${view.slice("own-category:".length)}`;
+    else if (view.startsWith("category:")) path = `/user/categories/shared/${view.slice("category:".length)}`;
     router.push(path);
     setMobileMenuOpen(false);
+  }
+
+  async function startExamHandler() {
+    try {
+      const exam = await startExam().unwrap();
+      router.push(`/user/exam/${exam.examId}`);
+    } catch (error) {
+      const message = typeof error === "object" && error && "data" in error
+        ? ((error as { data?: { message?: string } }).data?.message ?? "Could not start the exam. Please try again.")
+        : "Could not start the exam. Check that the backend server is running with the latest changes.";
+      window.alert(message);
+    }
   }
 
   const renderNavLinks = () => (
@@ -960,6 +984,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
               {profile.account.pending.length}
             </span>
           </button>
+          <button type="button" onClick={() => handleNavigate("exams")} className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeView === "exams" ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>Exam history</button>
         </div>}
       </div>
     </div>
@@ -1108,8 +1133,14 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
         )}
 
         {activeView === "pending" && (
-          <PersonalVocabularyPanel items={profile.account.pending} listType="pending" />
+          <PersonalVocabularyPanel items={profile.account.pending} listType="pending" onTakeExam={startExamHandler} />
         )}
+
+        {activeView === "exams" && <ExamHistoryPanel />}
+
+        {activeView.startsWith("exam:") && <ExamPanel examId={activeView.slice("exam:".length)} />}
+
+        {activeView.startsWith("exam-result:") && <ExamPanel examId={activeView.slice("exam-result:".length)} resultOnly />}
 
         {activeView === "my-categories" && <PersonalCategoryManager categories={ownCategories} />}
 

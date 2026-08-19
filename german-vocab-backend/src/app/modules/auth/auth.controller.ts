@@ -78,6 +78,22 @@ const delete_personal_vocabularies = catchAsync(async (req, res) => {
     const result = await auth_services.delete_personal_vocabularies_from_db(req.user!.email, req.params.listType, req.body.bangla);
     manageResponse(res, { statusCode: httpStatus.OK, success: true, message: `${result.deleted} vocabulary item(s) deleted successfully`, data: result });
 });
+const start_exam = catchAsync(async (req, res) => {
+    const result = await auth_services.start_exam_from_db(req.user!.email);
+    manageResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'Exam started successfully', data: result });
+});
+const submit_exam = catchAsync(async (req, res) => {
+    const result = await auth_services.submit_exam_to_db(req.user!.email, req.params.examId, req.body.answers);
+    manageResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Exam submitted successfully', data: result });
+});
+const get_exam_history = catchAsync(async (req, res) => {
+    const result = await auth_services.get_exam_history_from_db(req.user!.email);
+    manageResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Exam history fetched successfully', data: result });
+});
+const get_exam = catchAsync(async (req, res) => {
+    const result = await auth_services.get_exam_from_db(req.user!.email, req.params.examId);
+    manageResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Exam result fetched successfully', data: result });
+});
 
 const get_all_users = catchAsync(async (_req, res) => {
     const result = await auth_services.get_all_users_from_db();
@@ -166,6 +182,10 @@ export const auth_controllers = {
     upload_personal_vocabulary,
     delete_personal_vocabulary,
     delete_personal_vocabularies,
+    start_exam,
+    submit_exam,
+    get_exam_history,
+    get_exam,
     get_all_users,
     delete_user,
     refresh_token,

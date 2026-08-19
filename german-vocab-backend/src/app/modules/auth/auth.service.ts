@@ -11,6 +11,7 @@ import sendMail from "../../utils/mail_sender";
 import { isAccountExist } from "../../utils/isAccountExist";
 import { Category_Model } from "../vocabulary/vocabulary.schema";
 import { Progress_Model } from "../progress/progress.schema";
+import { Exam_Model } from "./exam.schema";
 // register user
 const register_user_into_db = async (payload: TRegisterPayload) => {
     const session = await mongoose.startSession();
@@ -245,6 +246,78 @@ const delete_personal_vocabularies_from_db = async (email: string, listType: str
     account[listType] = nextList;
     await account.save();
     return { deleted, listType };
+};
+
+const normalizeAnswer = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+
+const start_exam_from_db = async (email: string) => {
+    const account = await isAccountExist(email);
+    const pending = account.pending || [];
+    if (!pending.length) throw new AppError('Add vocabulary to today\'s task before starting an exam', httpStatus.BAD_REQUEST);
+    const questions = [...pending].sort(() => Math.random() - 0.5).slice(0, 100).map(item => ({
+        bangla: item.bangla,
+        english: item.english,
+        ...(item.sentence ? { sentence: item.sentence } : {}),
+    }));
+    const exam = await Exam_Model.create({ userId: account._id, questions, total: questions.length });
+    return { examId: exam._id.toString(), questions: questions.map(({ bangla }) => ({ bangla })), total: questions.length };
+};
+
+const submit_exam_to_db = async (email: string, examId: string, submittedAnswers: { bangla: string; answer: string }[]) => {
+    if (!mongoose.Types.ObjectId.isValid(examId)) throw new AppError('Invalid exam ID', httpStatus.BAD_REQUEST);
+    const account = await isAccountExist(email);
+    const exam = await Exam_Model.findOne({ _id: examId, userId: account._id });
+    if (!exam) throw new AppError('Exam was not found', httpStatus.NOT_FOUND);
+    if (exam.submittedAt) throw new AppError('This exam has already been submitted', httpStatus.CONFLICT);
+    const submittedByBangla = new Map(submittedAnswers.map(item => [item.bangla, item.answer]));
+    const answers = exam.questions.map(question => {
+        const answer = submittedByBangla.get(question.bangla)?.trim() || '';
+        const correct = question.english.some(expected => normalizeAnswer(expected) === normalizeAnswer(answer));
+        return { bangla: question.bangla, expected: question.english, answer, correct };
+    });
+    const correctBangla = new Set(answers.filter(answer => answer.correct).map(answer => answer.bangla));
+    const learnedByBangla = new Map((account.learned || []).map(item => [item.bangla, item]));
+    const pendingByBangla = new Map((account.pending || []).map(item => [item.bangla, item]));
+    correctBangla.forEach(bangla => {
+        const vocabulary = pendingByBangla.get(bangla);
+        if (vocabulary && !learnedByBangla.has(bangla)) learnedByBangla.set(bangla, vocabulary);
+    });
+    account.learned = [...learnedByBangla.values()];
+    account.pending = (account.pending || []).filter(item => !correctBangla.has(item.bangla));
+    if (correctBangla.size) {
+        account.lastVocabularyActivityAt = new Date();
+        account.lastVocabularyActivityType = 'LEARNED';
+    }
+    await account.save();
+    if (correctBangla.size) {
+        const today = new Date().toISOString().slice(0, 10);
+        await Progress_Model.findOneAndUpdate({ userId: account._id, date: today }, { $inc: { count: correctBangla.size } }, { upsert: true, new: true });
+    }
+    exam.answers = answers;
+    exam.score = correctBangla.size;
+    exam.submittedAt = new Date();
+    await exam.save();
+    return serialize_exam(exam);
+};
+
+const serialize_exam = (exam: { _id: mongoose.Types.ObjectId; total: number; score: number; createdAt?: Date; submittedAt?: Date; answers: { bangla: string; expected: string[]; answer: string; correct: boolean }[] }) => ({
+    _id: exam._id.toString(), total: exam.total, score: exam.score, createdAt: exam.createdAt, submittedAt: exam.submittedAt,
+    answers: exam.answers,
+});
+
+const get_exam_history_from_db = async (email: string) => {
+    const account = await isAccountExist(email);
+    const exams = await Exam_Model.find({ userId: account._id, submittedAt: { $exists: true } }).sort({ submittedAt: -1 }).lean();
+    return exams.map(exam => ({ _id: exam._id.toString(), total: exam.total, score: exam.score, submittedAt: exam.submittedAt }));
+};
+
+const get_exam_from_db = async (email: string, examId: string) => {
+    if (!mongoose.Types.ObjectId.isValid(examId)) throw new AppError('Invalid exam ID', httpStatus.BAD_REQUEST);
+    const account = await isAccountExist(email);
+    const exam = await Exam_Model.findOne({ _id: examId, userId: account._id });
+    if (!exam) throw new AppError('Exam was not found', httpStatus.NOT_FOUND);
+    if (!exam.submittedAt) return { _id: exam._id.toString(), total: exam.total, questions: exam.questions.map(question => ({ bangla: question.bangla })) };
+    return serialize_exam(exam);
 };
 
 const get_all_users_from_db = async () => Account_Model.aggregate([
@@ -493,6 +566,10 @@ export const auth_services = {
     upload_personal_vocabulary_into_db,
     delete_personal_vocabulary_from_db,
     delete_personal_vocabularies_from_db,
+    start_exam_from_db,
+    submit_exam_to_db,
+    get_exam_history_from_db,
+    get_exam_from_db,
     get_all_users_from_db,
     delete_user_from_db,
     refresh_token_from_db,

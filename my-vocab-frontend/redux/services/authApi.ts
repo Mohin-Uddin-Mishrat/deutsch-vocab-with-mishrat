@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "@/redux/store";
 import { setCredentials } from "@/redux/features/auth/authSlice";
-import type { AdminUser, ApiResponse, AuthCredentials, Category, LoginPayload, Profile, RegisterPayload } from "@/redux/features/auth/types";
+import type { AdminUser, ApiResponse, AuthCredentials, Category, Exam, ExamHistory, LoginPayload, Profile, RegisterPayload } from "@/redux/features/auth/types";
 
 const baseQuery = fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api", prepareHeaders: (headers, { getState }) => { const token = (getState() as RootState).auth.accessToken; if (token) headers.set("authorization", `Bearer ${token}`); return headers; } });
 export const authApi = createApi({
@@ -28,6 +28,25 @@ export const authApi = createApi({
       query: ({ listType, bangla }) => ({ url: `/auth/vocabularies/${listType}/bulk`, method: "DELETE", body: { bangla } }),
       transformResponse: (response: ApiResponse<{ deleted: number; listType: "learned" | "pending" }>) => response.data,
       invalidatesTags: ["Profile"],
+    }),
+    startExam: builder.mutation<{ examId: string; questions: { bangla: string }[]; total: number }, void>({
+      query: () => ({ url: "/auth/exams", method: "POST" }),
+      transformResponse: (response: ApiResponse<{ examId: string; questions: { bangla: string }[]; total: number }>) => response.data,
+    }),
+    getExam: builder.query<Exam, string>({
+      query: (examId) => `/auth/exams/${examId}`,
+      transformResponse: (response: ApiResponse<Exam>) => response.data,
+      providesTags: ["Profile"],
+    }),
+    submitExam: builder.mutation<Exam, { examId: string; answers: { bangla: string; answer: string }[] }>({
+      query: ({ examId, answers }) => ({ url: `/auth/exams/${examId}/submit`, method: "POST", body: { answers } }),
+      transformResponse: (response: ApiResponse<Exam>) => response.data,
+      invalidatesTags: ["Profile", "Progress"],
+    }),
+    getExamHistory: builder.query<ExamHistory[], void>({
+      query: () => "/auth/exams",
+      transformResponse: (response: ApiResponse<ExamHistory[]>) => response.data,
+      providesTags: ["Profile"],
     }),
     createCategory: builder.mutation<Category, { name: string }>({
       query: (body) => ({ url: "/vocabulary/categories", method: "POST", body }),
@@ -65,4 +84,4 @@ export const authApi = createApi({
     }),
   })
 });
-export const { useGetMeQuery, useLoginMutation, useRegisterMutation, useUploadPersonalVocabularyMutation, useDeletePersonalVocabularyMutation, useDeletePersonalVocabulariesMutation, useCreateCategoryMutation, useUploadCategoryVocabularyMutation, useUpdateCategoryVocabularyBanglaMutation, useDeleteCategoryMutation, useGetUsersQuery, useDeleteUserMutation, useGetProgressQuery } = authApi;
+export const { useGetMeQuery, useLoginMutation, useRegisterMutation, useUploadPersonalVocabularyMutation, useDeletePersonalVocabularyMutation, useDeletePersonalVocabulariesMutation, useStartExamMutation, useGetExamQuery, useSubmitExamMutation, useGetExamHistoryQuery, useCreateCategoryMutation, useUploadCategoryVocabularyMutation, useUpdateCategoryVocabularyBanglaMutation, useDeleteCategoryMutation, useGetUsersQuery, useDeleteUserMutation, useGetProgressQuery } = authApi;

@@ -35,6 +35,9 @@ const deletePersonalVocabulary = z.object({
 const deletePersonalVocabularies = z.object({
     bangla: z.array(z.string().trim().min(1)).min(1, 'Select at least one vocabulary item').max(500),
 });
+const submitExam = z.object({
+    answers: z.array(z.object({ bangla: z.string().trim().min(1), answer: z.string().max(200) })).min(1).max(100),
+});
 
 export const auth_validation = {
     register_validation,
@@ -46,4 +49,5 @@ export const auth_validation = {
     uploadPersonalVocabulary,
     deletePersonalVocabulary,
     deletePersonalVocabularies,
+    submitExam,
 }
