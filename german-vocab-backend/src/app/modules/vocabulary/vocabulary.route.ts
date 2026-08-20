@@ -11,6 +11,7 @@ vocabularyRoute.get('/categories', vocabulary_controllers.get_category_list);
 vocabularyRoute.get('/categories/:categoryId', vocabulary_controllers.get_specific_category);
 vocabularyRoute.delete('/categories/:categoryId', vocabulary_controllers.delete_category);
 vocabularyRoute.post('/categories/:categoryId/vocabularies', RequestValidator(vocabulary_validation.uploadVocabulary), vocabulary_controllers.upload_vocabulary);
+vocabularyRoute.patch('/categories/:categoryId/vocabularies/bulk', auth('ADMIN'), RequestValidator(vocabulary_validation.updateVocabularyBanglaBulk), vocabulary_controllers.update_vocabulary_bangla_bulk);
 vocabularyRoute.patch('/categories/:categoryId/vocabularies/:vocabularyIndex', auth('ADMIN'), RequestValidator(vocabulary_validation.updateVocabularyBangla), vocabulary_controllers.update_vocabulary_bangla);
 
 export default vocabularyRoute;

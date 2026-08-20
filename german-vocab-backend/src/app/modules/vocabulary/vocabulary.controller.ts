@@ -23,6 +23,11 @@ const update_vocabulary_bangla = catchAsync(async (req, res) => {
     manageResponse(res, { success: true, statusCode: httpStatus.OK, message: 'Bangla meaning updated successfully', data: result });
 });
 
+const update_vocabulary_bangla_bulk = catchAsync(async (req, res) => {
+    const result = await vocabulary_services.update_vocabulary_bangla_bulk_in_category(req.params.categoryId, req.body.updates, req.user!);
+    manageResponse(res, { success: true, statusCode: httpStatus.OK, message: 'Bangla meanings updated successfully', data: result });
+});
+
 const delete_category = catchAsync(async (req, res) => {
     await vocabulary_services.delete_category_from_db(req.params.categoryId, req.user!);
     manageResponse(res, { success: true, statusCode: httpStatus.OK, message: 'Category deleted successfully', data: null });
@@ -38,4 +43,4 @@ const get_category_list = catchAsync(async (req, res) => {
     manageResponse(res, { success: true, statusCode: httpStatus.OK, message: 'Category list fetched successfully', data: result });
 });
 
-export const vocabulary_controllers = { create_category, upload_vocabulary, update_vocabulary_bangla, delete_category, get_specific_category, get_category_list };
+export const vocabulary_controllers = { create_category, upload_vocabulary, update_vocabulary_bangla, update_vocabulary_bangla_bulk, delete_category, get_specific_category, get_category_list };

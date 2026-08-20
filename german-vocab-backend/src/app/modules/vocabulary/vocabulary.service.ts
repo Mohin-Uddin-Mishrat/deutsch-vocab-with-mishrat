@@ -147,6 +147,28 @@ const update_vocabulary_bangla_in_category = async (categoryId: string, vocabula
     return serializeCategory(category);
 };
 
+const update_vocabulary_bangla_bulk_in_category = async (categoryId: string, updates: { vocabularyIndex: number; bangla: string }[], requester: Requester) => {
+    const category = await getAccessibleCategory(categoryId, requester, false, true);
+    const nextBanglaByIndex = new Map(updates.map(({ vocabularyIndex, bangla }) => [vocabularyIndex, bangla.trim()]));
+
+    for (const index of nextBanglaByIndex.keys()) {
+        if (index < 0 || index >= category.vocabularies.length) {
+            throw new AppError('Vocabulary was not found in this category', httpStatus.NOT_FOUND);
+        }
+    }
+
+    const finalBangla = category.vocabularies.map((vocabulary, index) => nextBanglaByIndex.get(index) ?? vocabulary.bangla);
+    if (new Set(finalBangla).size !== finalBangla.length) {
+        throw new AppError('Another vocabulary item already uses this Bangla meaning', httpStatus.CONFLICT);
+    }
+
+    nextBanglaByIndex.forEach((bangla, index) => {
+        category.vocabularies[index].bangla = bangla;
+    });
+    await category.save();
+    return serializeCategory(category);
+};
+
 const delete_category_from_db = async (categoryId: string, requester: Requester) => {
     const category = await getAccessibleCategory(categoryId, requester, false);
     await Category_Model.findByIdAndDelete(category._id);
@@ -165,4 +187,4 @@ const get_category_list_from_db = async (requester: Requester) => {
     return { own, admin };
 };
 
-export const vocabulary_services = { create_category_into_db, upload_vocabulary_into_category, update_vocabulary_bangla_in_category, delete_category_from_db, get_specific_category_from_db, get_category_list_from_db };
+export const vocabulary_services = { create_category_into_db, upload_vocabulary_into_category, update_vocabulary_bangla_in_category, update_vocabulary_bangla_bulk_in_category, delete_category_from_db, get_specific_category_from_db, get_category_list_from_db };
