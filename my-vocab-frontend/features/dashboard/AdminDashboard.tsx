@@ -13,8 +13,9 @@ import {
 import type { Profile } from "@/redux/features/auth/types";
 import AdminVocabularyPanel from "./AdminVocabularyPanel";
 import AdminParagraphManager from "./AdminParagraphManager";
+import VocabularyPdfPanel from "./VocabularyPdfPanel";
 
-type AdminView = "overview" | "categories" | "paragraphs" | "users" | `category:${string}`;
+type AdminView = "overview" | "categories" | "paragraphs" | "users" | `category:${string}` | `pdf:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
 
 const messageFromError = (error: unknown) =>
@@ -36,6 +37,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       ? "paragraphs"
     : pathname === "/admin/categories"
       ? "categories"
+      : pathname.startsWith("/admin/vocabulary-pdf/")
+        ? `pdf:${pathname.slice("/admin/vocabulary-pdf/".length)}`
       : pathname.startsWith("/admin/categories/")
         ? `category:${pathname.slice("/admin/categories/".length)}`
         : "overview";
@@ -58,7 +61,9 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
 
   const categories = profile.categories.all ?? [];
   const selectedCategoryId = view.startsWith("category:") ? view.slice("category:".length) : null;
+  const selectedPdfCategoryId = view.startsWith("pdf:") ? view.slice("pdf:".length) : null;
   const selectedCategory = categories.find((category) => category._id === selectedCategoryId);
+  const selectedPdfCategory = categories.find((category) => category._id === selectedPdfCategoryId);
   const filteredCategories = categories.filter((category) => category.name.toLowerCase().includes(categorySearchQuery.toLowerCase().trim()));
 
   async function createCategoryHandler(event: FormEvent<HTMLFormElement>) {
@@ -115,6 +120,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           ? "/admin/paragraphs"
         : targetView === "users"
           ? "/admin/users"
+          : targetView.startsWith("pdf:")
+            ? `/admin/vocabulary-pdf/${targetView.slice("pdf:".length)}`
           : `/admin/categories/${targetView.slice("category:".length)}`;
     router.push(path);
     setMobileMenuOpen(false);
@@ -127,6 +134,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       <div className="space-y-1 max-h-64 overflow-y-auto pr-1">{filteredCategories.map((category) => <button key={category._id} onClick={() => handleNavigate(`category:${category._id}`)} className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${selectedCategoryId === category._id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}><span className="truncate">{category.name}</span><span className="ml-2 rounded bg-slate-700/70 px-1.5 py-0.5 text-[10px]">{category.vocabularies.length}</span></button>)}</div>
     </div>
   );
+
+  const vocabularyPdfLinks = () => <div className="mt-5"><p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Vocabulary PDF <span className="float-right rounded bg-slate-700 px-1.5">{categories.length}</span></p><div className="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1">{categories.map((category) => <button key={category._id} type="button" onClick={() => handleNavigate(`pdf:${category._id}`)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition-all ${selectedPdfCategoryId === category._id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}><span className="truncate">{category.name}</span><span className="ml-2 rounded bg-slate-700/70 px-1.5 py-0.5 text-[10px]">{category.vocabularies.length}</span></button>)}</div></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 max-w-full overflow-x-hidden">
@@ -180,6 +189,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
               Categories
             </button>
             <button className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${view === "paragraphs" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"}`} onClick={() => handleNavigate("paragraphs")}>Paragraphs</button>
+            {vocabularyPdfLinks()}
             <button
               className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 view === "users" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"
@@ -244,6 +254,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
                 </button>
               </div>
               {categoryLinks()}
+              {vocabularyPdfLinks()}
             </div>
           </nav>
         </div>
@@ -270,7 +281,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Administrator Dashboard</span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-              {view === "overview" ? "Overview" : view === "categories" ? "Category Management" : view === "paragraphs" ? "Paragraph Management" : view === "users" ? "User Management" : selectedCategory?.name ?? "Vocabulary"}
+              {view === "overview" ? "Overview" : view === "categories" ? "Category Management" : view === "paragraphs" ? "Paragraph Management" : view === "users" ? "User Management" : selectedPdfCategory?.name ?? selectedCategory?.name ?? "Vocabulary"}
             </h1>
           </div>
 
@@ -409,6 +420,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
         )}
 
         {view === "paragraphs" && <AdminParagraphManager onNotice={setNotice} onSuccess={setSuccessToast} />}
+
+        {selectedPdfCategory && <VocabularyPdfPanel category={selectedPdfCategory} />}
 
         {selectedCategory && <AdminVocabularyPanel key={selectedCategory._id} category={selectedCategory} onNotice={setNotice} />}
 
