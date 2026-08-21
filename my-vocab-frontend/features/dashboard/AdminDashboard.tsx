@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -12,8 +12,9 @@ import {
 } from "@/redux/services/authApi";
 import type { Profile } from "@/redux/features/auth/types";
 import AdminVocabularyPanel from "./AdminVocabularyPanel";
+import AdminParagraphManager from "./AdminParagraphManager";
 
-type AdminView = "overview" | "categories" | "users" | `category:${string}`;
+type AdminView = "overview" | "categories" | "paragraphs" | "users" | `category:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
 
 const messageFromError = (error: unknown) =>
@@ -31,14 +32,23 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
   const router = useRouter();
   const view: AdminView = pathname === "/admin/users"
     ? "users"
+    : pathname === "/admin/paragraphs"
+      ? "paragraphs"
     : pathname === "/admin/categories"
       ? "categories"
       : pathname.startsWith("/admin/categories/")
         ? `category:${pathname.slice("/admin/categories/".length)}`
         : "overview";
   const [notice, setNotice] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
+
+  useEffect(() => {
+    if (!successToast) return;
+    const timeout = window.setTimeout(() => setSuccessToast(null), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [successToast]);
 
   const [createCategory, createState] = useCreateCategoryMutation();
   const [uploadCategoryVocabulary, uploadState] = useUploadCategoryVocabularyMutation();
@@ -101,6 +111,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       ? "/admin"
       : targetView === "categories"
         ? "/admin/categories"
+        : targetView === "paragraphs"
+          ? "/admin/paragraphs"
         : targetView === "users"
           ? "/admin/users"
           : `/admin/categories/${targetView.slice("category:".length)}`;
@@ -167,6 +179,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
             >
               Categories
             </button>
+            <button className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${view === "paragraphs" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"}`} onClick={() => handleNavigate("paragraphs")}>Paragraphs</button>
             <button
               className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 view === "users" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"
@@ -220,6 +233,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
                 >
                   Categories
                 </button>
+                <button className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${view === "paragraphs" ? "bg-indigo-600 text-white font-semibold" : "text-slate-300 hover:bg-slate-800"}`} onClick={() => handleNavigate("paragraphs")}>Paragraphs</button>
                 <button
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     view === "users" ? "bg-indigo-600 text-white font-semibold" : "text-slate-300 hover:bg-slate-800"
@@ -256,7 +270,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Administrator Dashboard</span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-              {view === "overview" ? "Overview" : view === "categories" ? "Category Management" : view === "users" ? "User Management" : selectedCategory?.name ?? "Vocabulary"}
+              {view === "overview" ? "Overview" : view === "categories" ? "Category Management" : view === "paragraphs" ? "Paragraph Management" : view === "users" ? "User Management" : selectedCategory?.name ?? "Vocabulary"}
             </h1>
           </div>
 
@@ -394,6 +408,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           </div>
         )}
 
+        {view === "paragraphs" && <AdminParagraphManager onNotice={setNotice} onSuccess={setSuccessToast} />}
+
         {selectedCategory && <AdminVocabularyPanel key={selectedCategory._id} category={selectedCategory} onNotice={setNotice} />}
 
         {view === "users" && (
@@ -460,6 +476,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           </section>
         )}
       </main>
+      {successToast && <div role="status" className="fixed right-5 top-5 z-50 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 shadow-lg"><span>{successToast}</span><button type="button" onClick={() => setSuccessToast(null)} className="text-emerald-700 hover:text-emerald-950" aria-label="Dismiss success message">×</button></div>}
     </div>
   );
 }

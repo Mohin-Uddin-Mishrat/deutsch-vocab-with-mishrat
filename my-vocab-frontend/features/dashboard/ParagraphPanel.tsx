@@ -1,0 +1,69 @@
+"use client";
+
+import { useState } from "react";
+import { useDeleteCategoryParagraphMutation, useGetParagraphCategoryQuery } from "@/redux/services/authApi";
+
+const PAGE_SIZE = 5;
+
+export default function ParagraphPanel({ categoryId, canDelete = false, onNotice }: { categoryId: string; canDelete?: boolean; onNotice?: (message: string) => void }) {
+  const { data: category, isLoading, isError } = useGetParagraphCategoryQuery(categoryId);
+  const [language, setLanguage] = useState<"german" | "bangla">("german");
+  const [shownTranslations, setShownTranslations] = useState<Set<string>>(new Set());
+  const [wordsDialogIndex, setWordsDialogIndex] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [deleteParagraph, deleteState] = useDeleteCategoryParagraphMutation();
+
+  if (isLoading) return <p className="text-sm text-slate-500">Loading paragraphs...</p>;
+  if (isError || !category) return <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Could not load this paragraph category.</p>;
+  if (!category.paragraphs.length) return <p className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">No paragraphs have been added to this category yet.</p>;
+
+  const totalPages = Math.ceil(category.paragraphs.length / PAGE_SIZE);
+  const safePage = Math.min(currentPage, totalPages);
+  const pageParagraphs = category.paragraphs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const wordsParagraph = wordsDialogIndex === null ? null : category.paragraphs[wordsDialogIndex];
+
+  function toggleTranslation(key: string) {
+    setShownTranslations((current) => {
+      const next = new Set(current);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  async function removeParagraph(paragraphIndex: number) {
+    if (!window.confirm("Delete this paragraph permanently?")) return;
+    try {
+      await deleteParagraph({ categoryId, paragraphIndex }).unwrap();
+      setWordsDialogIndex(null);
+      onNotice?.("Paragraph deleted successfully.");
+    } catch {
+      onNotice?.("Could not delete the paragraph.");
+    }
+  }
+
+  return <section className="space-y-5">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div><h2 className="font-bold text-slate-900">{category.name}</h2><p className="text-xs text-slate-500">{category.paragraphs.length} paragraphs</p></div>
+      <button type="button" onClick={() => setLanguage((current) => current === "german" ? "bangla" : "german")} className="rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-100">Show {language === "german" ? "Bangla" : "German"}</button>
+    </div>
+
+    {pageParagraphs.map((paragraph, pageIndex) => {
+      const paragraphIndex = (safePage - 1) * PAGE_SIZE + pageIndex;
+      return <article key={paragraphIndex} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="font-bold text-slate-900">Paragraph {paragraphIndex + 1}</h3><div className="flex gap-2"><button type="button" onClick={() => setWordsDialogIndex(paragraphIndex)} className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">See used words</button>{canDelete && <button type="button" disabled={deleteState.isLoading} onClick={() => removeParagraph(paragraphIndex)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">Delete</button>}</div></div>
+        <div className="leading-8 text-slate-900">
+          {paragraph.german.map((german, sentenceIndex) => {
+            const translationKey = `${paragraphIndex}:${sentenceIndex}`;
+            const primaryText = language === "german" ? german : paragraph.bangla[sentenceIndex];
+            const translation = language === "german" ? paragraph.bangla[sentenceIndex] : german;
+            return <span key={translationKey} className="mr-1.5">{primaryText} <button type="button" onClick={() => toggleTranslation(translationKey)} className="mx-1 inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-semibold leading-5 text-indigo-700 hover:bg-indigo-100">{shownTranslations.has(translationKey) ? "Hide trans" : "Trans"}</button>{shownTranslations.has(translationKey) && <span className="mx-1 rounded-md bg-indigo-50 px-2 py-1 text-sm leading-6 text-indigo-950">{translation}</span>}</span>;
+          })}
+        </div>
+      </article>;
+    })}
+
+    {totalPages > 1 && <nav aria-label="Paragraph pagination" className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3"><button type="button" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40">Previous</button><span className="text-sm font-medium text-slate-600">Page {safePage} of {totalPages}</span><button type="button" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40">Next</button></nav>}
+
+    {wordsParagraph && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-label="Used words"><div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"><div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="text-lg font-bold">Used words</h3><button type="button" onClick={() => setWordsDialogIndex(null)} className="rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100">Close</button></div><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">{wordsParagraph.usedWords.map((word, index) => <div key={index} className="rounded-lg bg-indigo-50 p-3 text-sm text-indigo-950"><strong>{word.german}</strong><span className="mx-1">=</span>{word.bangla}</div>)}</div></div></div>}
+  </section>;
+}

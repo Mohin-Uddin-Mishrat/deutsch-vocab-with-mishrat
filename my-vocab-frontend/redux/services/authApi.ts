@@ -1,11 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "@/redux/store";
 import { setCredentials } from "@/redux/features/auth/authSlice";
-import type { AdminUser, ApiResponse, AuthCredentials, Category, Exam, ExamHistory, LoginPayload, Profile, RegisterPayload } from "@/redux/features/auth/types";
+import type { AdminUser, ApiResponse, AuthCredentials, Category, Exam, ExamHistory, LoginPayload, ParagraphCategory, ParagraphCategorySummary, Profile, RegisterPayload } from "@/redux/features/auth/types";
 
 const baseQuery = fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api", prepareHeaders: (headers, { getState }) => { const token = (getState() as RootState).auth.accessToken; if (token) headers.set("authorization", `Bearer ${token}`); return headers; } });
 export const authApi = createApi({
-  reducerPath: "authApi", baseQuery, tagTypes: ["Profile", "Users", "Progress"], endpoints: (builder) => ({
+  reducerPath: "authApi", baseQuery, tagTypes: ["Profile", "Users", "Progress", "ParagraphCategories"], endpoints: (builder) => ({
     register: builder.mutation<AuthCredentials, RegisterPayload>({ query: (body) => ({ url: "/auth/register", method: "POST", body }), transformResponse: (response: ApiResponse<AuthCredentials>) => response.data, async onQueryStarted(_payload, { dispatch, queryFulfilled }) { const { data } = await queryFulfilled; dispatch(setCredentials(data)); } }),
     login: builder.mutation<AuthCredentials, LoginPayload>({ query: (body) => ({ url: "/auth/login", method: "POST", body }), transformResponse: (response: ApiResponse<AuthCredentials>) => response.data, async onQueryStarted(_payload, { dispatch, queryFulfilled }) { const { data } = await queryFulfilled; dispatch(setCredentials(data)); } }),
     getMe: builder.query<Profile, void>({ query: () => "/auth/me", transformResponse: (response: ApiResponse<Profile>) => response.data, providesTags: ["Profile"] }),
@@ -81,6 +81,31 @@ export const authApi = createApi({
       transformResponse: (response: ApiResponse<null>) => response.data,
       invalidatesTags: ["Profile"],
     }),
+    getParagraphCategories: builder.query<ParagraphCategorySummary[], void>({
+      query: () => "/paragraphs/categories",
+      transformResponse: (response: ApiResponse<ParagraphCategorySummary[]>) => response.data,
+      providesTags: ["ParagraphCategories"],
+    }),
+    getParagraphCategory: builder.query<ParagraphCategory, string>({
+      query: (categoryId) => `/paragraphs/categories/${categoryId}`,
+      transformResponse: (response: ApiResponse<ParagraphCategory>) => response.data,
+      providesTags: (_result, _error, categoryId) => [{ type: "ParagraphCategories", id: categoryId }],
+    }),
+    createParagraphCategory: builder.mutation<ParagraphCategorySummary, { name: string }>({
+      query: (body) => ({ url: "/paragraphs/categories", method: "POST", body }),
+      transformResponse: (response: ApiResponse<ParagraphCategorySummary>) => response.data,
+      invalidatesTags: ["ParagraphCategories"],
+    }),
+    uploadCategoryParagraph: builder.mutation<ParagraphCategory, { categoryId: string; input: string }>({
+      query: ({ categoryId, input }) => ({ url: `/paragraphs/categories/${categoryId}/paragraphs`, method: "POST", body: { input } }),
+      transformResponse: (response: ApiResponse<ParagraphCategory>) => response.data,
+      invalidatesTags: (_result, _error, { categoryId }) => ["ParagraphCategories", { type: "ParagraphCategories", id: categoryId }],
+    }),
+    deleteCategoryParagraph: builder.mutation<ParagraphCategory, { categoryId: string; paragraphIndex: number }>({
+      query: ({ categoryId, paragraphIndex }) => ({ url: `/paragraphs/categories/${categoryId}/paragraphs/${paragraphIndex}`, method: "DELETE" }),
+      transformResponse: (response: ApiResponse<ParagraphCategory>) => response.data,
+      invalidatesTags: (_result, _error, { categoryId }) => ["ParagraphCategories", { type: "ParagraphCategories", id: categoryId }],
+    }),
     getUsers: builder.query<AdminUser[], void>({
       query: () => "/auth/users",
       transformResponse: (response: ApiResponse<AdminUser[]>) => response.data,
@@ -93,4 +118,4 @@ export const authApi = createApi({
     }),
   })
 });
-export const { useGetMeQuery, useLoginMutation, useRegisterMutation, useUploadPersonalVocabularyMutation, useDeletePersonalVocabularyMutation, useDeletePersonalVocabulariesMutation, useStartExamMutation, useGetExamQuery, useSubmitExamMutation, useGetExamHistoryQuery, useCreateCategoryMutation, useUploadCategoryVocabularyMutation, useUpdateCategoryVocabularyBanglaMutation, useUpdateCategoryVocabularyBanglaBulkMutation, useDeleteCategoryMutation, useGetUsersQuery, useDeleteUserMutation, useGetProgressQuery } = authApi;
+export const { useGetMeQuery, useLoginMutation, useRegisterMutation, useUploadPersonalVocabularyMutation, useDeletePersonalVocabularyMutation, useDeletePersonalVocabulariesMutation, useStartExamMutation, useGetExamQuery, useSubmitExamMutation, useGetExamHistoryQuery, useCreateCategoryMutation, useUploadCategoryVocabularyMutation, useUpdateCategoryVocabularyBanglaMutation, useUpdateCategoryVocabularyBanglaBulkMutation, useDeleteCategoryMutation, useGetParagraphCategoriesQuery, useGetParagraphCategoryQuery, useCreateParagraphCategoryMutation, useUploadCategoryParagraphMutation, useDeleteCategoryParagraphMutation, useGetUsersQuery, useDeleteUserMutation, useGetProgressQuery } = authApi;
