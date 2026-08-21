@@ -145,7 +145,6 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
           <Image src="/asset/logo.jpg" alt="Deutsch logo" width={32} height={32} className="h-8 w-8 rounded-full object-cover shadow-xs" />
           <div>
             <h1 className="font-bold text-sm leading-none">Deutsch</h1>
-            <span className="text-[10px] text-indigo-300">Learning With Mishrat</span>
           </div>
         </div>
 
@@ -217,7 +216,6 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
             <Image src="/asset/logo.jpg" alt="Deutsch logo" width={40} height={40} className="h-10 w-10 rounded-xl object-cover shadow-md" />
             <div>
               <strong className="block text-slate-100 text-base leading-tight">Deutsch</strong>
-              <small className="text-xs text-indigo-300">Learning With Mishrat</small>
             </div>
           </div>
 

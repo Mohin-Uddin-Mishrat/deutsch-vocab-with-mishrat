@@ -2,17 +2,86 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #fff8e8;
+    --foreground: #1a1a1a;
+    --german-black: #151515;
+    --german-red: #b30f24;
+    --german-red-dark: #8f091b;
+    --german-gold: #f6c945;
+    --german-gold-soft: #fff0bd;
   }
 
   body {
-    background-color: var(--background);
+    background: radial-gradient(circle at top right, #ffe7a0 0, transparent 28rem), radial-gradient(circle at bottom left, #f9d9d4 0, transparent 32rem), var(--background);
     color: var(--foreground);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* German flag theme: charcoal, red, and gold, with warm readable surfaces. */
+::selection {
+  background: var(--german-red);
+  color: #fff;
+}
+
+[class~="bg-slate-900"] { background-color: var(--german-black) !important; }
+[class~="bg-slate-900/95"] { background-color: rgb(21 21 21 / 0.95) !important; }
+[class~="bg-slate-950"] { background-color: #0b0b0b !important; }
+[class~="bg-slate-800"], [class~="bg-slate-800/70"] { background-color: #292929 !important; }
+[class~="bg-slate-700"], [class~="bg-slate-700/70"] { background-color: #3d3d3d !important; }
+[class~="bg-slate-50"] { background-color: #fff8e8 !important; }
+[class~="bg-white"] { background-color: #fffdf7 !important; }
+
+[class~="bg-indigo-600"], [class~="bg-indigo-500/60"] { background-color: var(--german-red) !important; }
+[class~="bg-indigo-700"] { background-color: var(--german-red-dark) !important; }
+[class~="bg-indigo-950/60"] { background-color: #4a0710 !important; }
+[class~="bg-indigo-50"], [class~="bg-indigo-50/60"] { background-color: var(--german-gold-soft) !important; }
+[class~="bg-sky-500/20"] { background-color: rgb(246 201 69 / 0.28) !important; }
+[class~="bg-amber-500/20"] { background-color: rgb(246 201 69 / 0.24) !important; }
+
+[class~="text-slate-900"] { color: #1a1a1a !important; }
+[class~="text-indigo-600"], [class~="text-indigo-700"], [class~="text-indigo-800"] { color: var(--german-red) !important; }
+[class~="text-indigo-200"], [class~="text-indigo-300"], [class~="text-amber-400"] { color: #ffe49a !important; }
+[class~="text-sky-100"], [class~="text-indigo-100"] { color: #fff4cb !important; }
+
+[class~="border-indigo-200"], [class~="border-indigo-100"] { border-color: #efc44d !important; }
+[class~="border-indigo-500/50"] { border-color: rgb(246 201 69 / 0.65) !important; }
+[class~="focus:border-indigo-500"]:focus { border-color: var(--german-red) !important; }
+[class~="focus:ring-indigo-100"]:focus { --tw-ring-color: rgb(246 201 69 / 0.45) !important; }
+[class~="border-slate-800"] { border-color: #3d3d3d !important; }
+
+[class~="hover:bg-indigo-100"]:hover, [class~="hover:bg-indigo-50"]:hover { background-color: #ffe59a !important; }
+[class~="hover:bg-indigo-600"]:hover { background-color: var(--german-red-dark) !important; }
+[class~="hover:bg-indigo-700"]:hover { background-color: #710713 !important; }
+[class~="hover:text-indigo-800"]:hover { color: var(--german-red-dark) !important; }
+
+/* The dashboard content can switch theme without changing its navigation rail. */
+.content-theme-dark {
+  background-color: #181714 !important;
+  color: #f7efdf;
+  color-scheme: dark;
+}
+
+.content-theme-dark [class~="bg-white"] { background-color: #25231e !important; }
+.content-theme-dark [class~="bg-slate-50"] { background-color: #1d1c18 !important; }
+.content-theme-dark [class~="bg-slate-100"] { background-color: #302d26 !important; }
+.content-theme-dark [class~="bg-slate-100/90"] { background-color: #39352d !important; }
+.content-theme-dark [class~="bg-indigo-100"] { background-color: #4a3910 !important; }
+.content-theme-dark [class~="bg-indigo-50"], .content-theme-dark [class~="bg-indigo-50/60"] { background-color: #3b2e0a !important; }
+.content-theme-dark [class~="bg-indigo-50/80"] { background-color: #3b2e0a !important; }
+.content-theme-dark [class~="bg-red-50"] { background-color: #401418 !important; }
+
+.content-theme-dark [class~="text-slate-900"], .content-theme-dark [class~="text-slate-800"], .content-theme-dark [class~="text-slate-700"] { color: #fff8e8 !important; }
+.content-theme-dark [class~="text-slate-600"], .content-theme-dark [class~="text-slate-500"], .content-theme-dark [class~="text-slate-400"], .content-theme-dark [class~="text-slate-300"] { color: #d9ceb8 !important; }
+.content-theme-dark [class~="text-indigo-950"], .content-theme-dark [class~="text-indigo-900"], .content-theme-dark [class~="text-indigo-800"], .content-theme-dark [class~="text-indigo-700"], .content-theme-dark [class~="text-indigo-600"] { color: #ffe58b !important; }
+.content-theme-dark [class~="text-indigo-500"] { color: #ffd75c !important; }
+.content-theme-dark [class~="text-red-700"] { color: #ffb9b9 !important; }
+
+.content-theme-dark [class~="border-slate-100"], .content-theme-dark [class~="border-slate-200"], .content-theme-dark [class~="border-slate-200/80"], .content-theme-dark [class~="border-slate-300"] { border-color: #514a3a !important; }
+.content-theme-dark [class~="border-indigo-100"], .content-theme-dark [class~="border-indigo-200"] { border-color: #8e6f18 !important; }
+.content-theme-dark input, .content-theme-dark textarea, .content-theme-dark select { color: #f7efdf; }
+.content-theme-dark input::placeholder, .content-theme-dark textarea::placeholder { color: #a99d86; }
 
 /* Custom scrollbar for sleeker mobile/desktop experience */
 ::-webkit-scrollbar {
@@ -23,9 +92,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d2a629;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--german-red);
 }

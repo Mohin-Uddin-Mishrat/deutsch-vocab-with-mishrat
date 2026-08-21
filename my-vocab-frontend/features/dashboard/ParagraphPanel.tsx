@@ -20,8 +20,6 @@ export default function ParagraphPanel({ categoryId, canDelete = false, onNotice
   const totalPages = Math.ceil(category.paragraphs.length / PAGE_SIZE);
   const safePage = Math.min(currentPage, totalPages);
   const pageParagraphs = category.paragraphs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const wordsParagraph = wordsDialogIndex === null ? null : category.paragraphs[wordsDialogIndex];
-
   function toggleTranslation(key: string) {
     setShownTranslations((current) => {
       const next = new Set(current);
@@ -53,21 +51,24 @@ export default function ParagraphPanel({ categoryId, canDelete = false, onNotice
 
     {pageParagraphs.map((paragraph, pageIndex) => {
       const paragraphIndex = (safePage - 1) * PAGE_SIZE + pageIndex;
+      const showUsedWords = wordsDialogIndex === paragraphIndex;
       return <article key={paragraphIndex} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="font-bold text-slate-900">Paragraph {paragraphIndex + 1}</h3><div className="flex gap-2"><button type="button" onClick={() => setWordsDialogIndex(paragraphIndex)} className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">See used words</button>{canDelete && <button type="button" disabled={deleteState.isLoading} onClick={() => removeParagraph(paragraphIndex)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">Delete</button>}</div></div>
-        <div className="leading-8 text-slate-900">
-          {paragraph.german.map((german, sentenceIndex) => {
-            const translationKey = `${paragraphIndex}:${sentenceIndex}`;
-            const primaryText = language === "german" ? german : paragraph.bangla[sentenceIndex];
-            const translation = language === "german" ? paragraph.bangla[sentenceIndex] : german;
-            return <span key={translationKey} className="mr-1.5">{primaryText} <button type="button" onClick={() => toggleTranslation(translationKey)} className="mx-1 inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-semibold leading-5 text-indigo-700 hover:bg-indigo-100">{shownTranslations.has(translationKey) ? "Hide trans" : "Trans"}</button>{shownTranslations.has(translationKey) && <span className="mx-1 rounded-md bg-indigo-50 px-2 py-1 text-sm leading-6 text-indigo-950">{translation}</span>}</span>;
-          })}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="font-bold text-slate-900">Paragraph {paragraphIndex + 1}</h3><div className="flex gap-2"><button type="button" onClick={() => setWordsDialogIndex(showUsedWords ? null : paragraphIndex)} className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">{showUsedWords ? "Hide used words" : "See used words"}</button>{canDelete && <button type="button" disabled={deleteState.isLoading} onClick={() => removeParagraph(paragraphIndex)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">Delete</button>}</div></div>
+        <div className={showUsedWords ? "grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]" : undefined}>
+          <div className="leading-8 text-slate-900">
+            {paragraph.german.map((german, sentenceIndex) => {
+              const translationKey = `${paragraphIndex}:${sentenceIndex}`;
+              const primaryText = language === "german" ? german : paragraph.bangla[sentenceIndex];
+              const translation = language === "german" ? paragraph.bangla[sentenceIndex] : german;
+              return <span key={translationKey} className="mr-1.5">{primaryText} <button type="button" onClick={() => toggleTranslation(translationKey)} className="mx-1 inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-semibold leading-5 text-indigo-700 hover:bg-indigo-100">{shownTranslations.has(translationKey) ? "Hide trans" : "Trans"}</button>{shownTranslations.has(translationKey) && <span className="mx-1 rounded-md bg-indigo-50 px-2 py-1 text-sm leading-6 text-indigo-950">{translation}</span>}</span>;
+            })}
+          </div>
+          {showUsedWords && <aside className="border-t border-slate-200 pt-4 lg:h-[70vh] lg:self-start lg:overflow-y-auto lg:border-t-0 lg:border-l lg:pl-5 lg:pt-0"><h4 className="sticky top-0 bg-white pb-3 font-semibold text-slate-900">Used words</h4><div className="flex flex-wrap gap-x-1 gap-y-2 text-sm leading-6 text-indigo-950">{paragraph.usedWords.map((word, index) => <span key={index} className="whitespace-nowrap"><strong>{word.german}</strong><span>=</span>{word.bangla}{index < paragraph.usedWords.length - 1 && <span>, </span>}</span>)}</div></aside>}
         </div>
       </article>;
     })}
 
     {pagination}
 
-    {wordsParagraph && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-label="Used words"><div className="max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"><div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="text-lg font-bold">Used words</h3><button type="button" onClick={() => setWordsDialogIndex(null)} className="rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100">Close</button></div><div className="mt-4 flex flex-wrap gap-x-1 gap-y-2 text-sm leading-6 text-indigo-950">{wordsParagraph.usedWords.map((word, index) => <span key={index} className="whitespace-nowrap"><strong>{word.german}</strong><span>=</span>{word.bangla}{index < wordsParagraph.usedWords.length - 1 && <span>, </span>}</span>)}</div></div></div>}
   </section>;
 }

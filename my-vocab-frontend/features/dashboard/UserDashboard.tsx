@@ -800,6 +800,8 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
     return "profile";
   })();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [contentTheme, setContentTheme] = useState<"light" | "dark">("dark");
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [myCategorySearchQuery, setMyCategorySearchQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<MenuSection | null>(null);
@@ -1022,7 +1024,6 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
           <Image src="/asset/logo.jpg" alt="Deutsch logo" width={32} height={32} className="h-8 w-8 rounded-full object-cover shadow-xs" />
           <div>
             <h1 className="font-bold text-sm leading-none">Deutsch</h1>
-            <span className="text-[10px] text-indigo-300">Learning With Mishrat</span>
           </div>
         </div>
 
@@ -1059,23 +1060,22 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen p-5 flex-col border-r border-slate-800 shadow-lg sticky top-0 h-screen overflow-hidden">
+      <aside className={`hidden md:flex flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen flex-col border-r border-slate-800 shadow-lg sticky top-0 h-screen overflow-hidden transition-[width,padding] duration-200 ${sidebarCollapsed ? "w-16 p-2" : "w-64 p-5"}`}>
         <div className="flex-1 min-h-0 overflow-y-auto pr-1">
           {/* Brand logo */}
-          <div className="flex items-center gap-3 pb-6 mb-6 border-b border-slate-800">
-            <Image src="/asset/logo.jpg" alt="Deutsch logo" width={40} height={40} className="h-10 w-10 rounded-xl object-cover shadow-md" />
-            <div>
-              <strong className="block text-slate-100 text-base leading-tight">Deutsch</strong>
-              <small className="text-xs text-indigo-300">Learning With Mishrat</small>
-            </div>
+          <div className={`flex items-center border-b border-slate-800 ${sidebarCollapsed ? "justify-center pb-4 mb-4" : "gap-3 pb-6 mb-6"}`}>
+            {!sidebarCollapsed && <><Image src="/asset/logo.jpg" alt="Deutsch logo" width={40} height={40} className="h-10 w-10 rounded-xl object-cover shadow-md" /><div><strong className="block text-slate-100 text-base leading-tight">Deutsch</strong></div></>}
+            <button type="button" onClick={() => setSidebarCollapsed((current) => !current)} className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-lg font-bold text-indigo-200 hover:bg-slate-800 hover:text-white ${sidebarCollapsed ? "" : "ml-auto"}`} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+              {sidebarCollapsed ? "›" : "‹"}
+            </button>
           </div>
 
           {/* Nav links */}
-          {renderNavLinks()}
+          {!sidebarCollapsed && renderNavLinks()}
         </div>
 
         {/* Sign out */}
-        <button
+        {!sidebarCollapsed && <button
           className="mt-4 flex-shrink-0 w-full py-2.5 px-4 rounded-xl border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-semibold transition-all flex items-center justify-center gap-2"
           type="button"
           onClick={onSignOut}
@@ -1089,11 +1089,11 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
             />
           </svg>
           <span>Sign out</span>
-        </button>
+        </button>}
       </aside>
 
       {/* Main Content Body */}
-      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full min-w-0 md:h-screen md:overflow-y-auto">
+      <main className={`flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full min-w-0 md:h-screen md:overflow-y-auto ${contentTheme === "dark" ? "content-theme-dark" : "content-theme-light"}`}>
         {/* Main Header */}
         <header className="flex items-center justify-between gap-4 mb-6 md:mb-8 pb-4 border-b border-slate-200/80">
           <div>
@@ -1101,11 +1101,16 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">{title}</h1>
           </div>
 
-          <div
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-indigo-600 text-white font-extrabold text-base sm:text-lg flex items-center justify-center shadow-md flex-shrink-0"
-            aria-label={profile?.account?.name || profile?.account?.email || "User"}
-          >
-            {(profile?.account?.name || profile?.account?.email || "User").slice(0, 1).toUpperCase()}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button type="button" onClick={() => setContentTheme((current) => current === "light" ? "dark" : "light")} aria-pressed={contentTheme === "dark"} className="flex h-10 items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800 transition hover:bg-indigo-100 sm:h-11" title={`Switch to ${contentTheme === "light" ? "dark" : "white"} mode`}>
+              <span aria-hidden="true" className="text-base leading-none">{contentTheme === "light" ? "☾" : "☀"}</span><span className="hidden sm:inline">{contentTheme === "light" ? "Dark mode" : "White mode"}</span>
+            </button>
+            <div
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-indigo-600 text-white font-extrabold text-base sm:text-lg flex items-center justify-center shadow-md flex-shrink-0"
+              aria-label={profile?.account?.name || profile?.account?.email || "User"}
+            >
+              {(profile?.account?.name || profile?.account?.email || "User").slice(0, 1).toUpperCase()}
+            </div>
           </div>
         </header>
 
