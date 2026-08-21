@@ -1015,7 +1015,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 max-w-full overflow-x-hidden md:h-screen md:flex-row md:overflow-hidden">
       {/* Mobile Top Header */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shadow-md">
         <div className="flex items-center gap-3">
@@ -1093,7 +1093,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       </aside>
 
       {/* Main Content Body */}
-      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full min-w-0">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full min-w-0 md:h-screen md:overflow-y-auto">
         {/* Main Header */}
         <header className="flex items-center justify-between gap-4 mb-6 md:mb-8 pb-4 border-b border-slate-200/80">
           <div>

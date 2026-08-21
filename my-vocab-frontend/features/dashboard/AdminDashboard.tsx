@@ -138,7 +138,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
   const vocabularyPdfLinks = () => <div className="mt-5"><p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Vocabulary PDF <span className="float-right rounded bg-slate-700 px-1.5">{categories.length}</span></p><div className="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1">{categories.map((category) => <button key={category._id} type="button" onClick={() => handleNavigate(`pdf:${category._id}`)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition-all ${selectedPdfCategoryId === category._id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}><span className="truncate">{category.name}</span><span className="ml-2 rounded bg-slate-700/70 px-1.5 py-0.5 text-[10px]">{category.vocabularies.length}</span></button>)}</div></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 max-w-full overflow-x-hidden md:h-screen md:flex-row md:overflow-hidden">
       {/* Mobile Top Header */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shadow-md">
         <div className="flex items-center gap-3">
@@ -211,8 +211,8 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen p-5 flex-col justify-between border-r border-slate-800 shadow-lg sticky top-0 h-screen">
-        <div>
+      <aside className="hidden md:flex w-64 flex-shrink-0 bg-slate-900 text-slate-200 min-h-screen p-5 flex-col justify-between border-r border-slate-800 shadow-lg sticky top-0 h-screen overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           <div className="flex items-center gap-3 pb-6 mb-6 border-b border-slate-800">
             <Image src="/asset/logo.jpg" alt="Deutsch logo" width={40} height={40} className="h-10 w-10 rounded-xl object-cover shadow-md" />
             <div>
@@ -276,7 +276,7 @@ export default function AdminDashboard({ profile, onSignOut }: Props) {
       </aside>
 
       {/* Content Area */}
-      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full min-w-0">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full min-w-0 md:h-screen md:overflow-y-auto">
         <header className="flex items-center justify-between gap-4 mb-6 md:mb-8 pb-4 border-b border-slate-200/80">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Administrator Dashboard</span>
