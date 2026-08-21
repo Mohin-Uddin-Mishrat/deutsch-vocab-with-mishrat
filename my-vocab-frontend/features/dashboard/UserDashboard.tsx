@@ -10,6 +10,7 @@ import { ExamHistoryPanel, ExamPanel } from "./ExamPanel";
 
 type View = "profile" | "my-categories" | "learned" | "pending" | "exams" | `exam:${string}` | `exam-result:${string}` | `category:${string}` | `own-category:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
+type MenuSection = "account" | "my-vocabulary" | "vocabularies" | "condition";
 
 const vocabularyKey = (categoryId: string, index: number) => `${categoryId}:${index}`;
 
@@ -799,9 +800,10 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [myCategorySearchQuery, setMyCategorySearchQuery] = useState("");
-  const [myVocabularyOpen, setMyVocabularyOpen] = useState(true);
-  const [sharedVocabularyOpen, setSharedVocabularyOpen] = useState(true);
-  const [conditionOpen, setConditionOpen] = useState(true);
+  const [openMenu, setOpenMenu] = useState<MenuSection | null>(null);
+  const myVocabularyOpen = openMenu === "my-vocabulary";
+  const sharedVocabularyOpen = openMenu === "vocabularies";
+  const conditionOpen = openMenu === "condition";
 
   const adminCategories = profile.categories.admin ?? [];
   const ownCategories = profile.categories.own ?? [];
@@ -862,27 +864,37 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
   }
 
   const renderNavLinks = () => (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
-        <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Account</p>
         <button
           type="button"
-          className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+          onClick={() => setOpenMenu(openMenu === "account" ? null : "account")}
+          aria-expanded={openMenu === "account"}
+          className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${openMenu === "account" ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}
+        >
+          <span>Account</span>
+          <span className="text-base leading-none" aria-hidden="true">{openMenu === "account" ? "-" : "+"}</span>
+        </button>
+        {openMenu === "account" && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
+          <button
+          type="button"
+          className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
             activeView === "profile"
-              ? "bg-indigo-600 text-white font-semibold shadow-xs"
-              : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              ? "bg-sky-500/20 text-sky-100 font-semibold"
+              : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
           }`}
           onClick={() => handleNavigate("profile")}
         >
           Profile
-        </button>
+          </button>
+        </div>}
       </div>
 
       <div>
-        <button type="button" onClick={() => setMyVocabularyOpen(!myVocabularyOpen)} aria-expanded={myVocabularyOpen} className="w-full px-3 mb-2 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-200">
-          <span>My vocabulary</span><span>{myVocabularyOpen ? "⌃" : "⌄"}</span>
+        <button type="button" onClick={() => setOpenMenu(openMenu === "my-vocabulary" ? null : "my-vocabulary")} aria-expanded={openMenu === "my-vocabulary"} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${openMenu === "my-vocabulary" ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}>
+          <span>My vocabulary</span><span className="text-base leading-none" aria-hidden="true">{myVocabularyOpen ? "-" : "+"}</span>
         </button>
-        {myVocabularyOpen && <div className="space-y-1">
+        {openMenu === "my-vocabulary" && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
           <button type="button" className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${activeView === "my-categories" ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`} onClick={() => handleNavigate("my-categories")}><span>My categories</span><span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${activeView === "my-categories" ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{ownCategories.length}</span></button>
           {ownCategories.length > 3 && <input type="text" value={myCategorySearchQuery} onChange={(e) => setMyCategorySearchQuery(e.target.value)} placeholder="Filter my categories..." className="w-full mt-1 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg placeholder-slate-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500" />}
           {filteredOwnCategories.map((category) => <button type="button" key={category._id} onClick={() => handleNavigate(`own-category:${category._id}`)} className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${selectedOwnCategoryId === category._id ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><span className="truncate">{category.name}</span><span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${selectedOwnCategoryId === category._id ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{category.vocabularies.length}</span></button>)}
@@ -890,17 +902,17 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       </div>
 
       <div>
-        <button type="button" onClick={() => setSharedVocabularyOpen(!sharedVocabularyOpen)} aria-expanded={sharedVocabularyOpen} className="w-full px-3 mb-2 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-200">
+        <button type="button" onClick={() => setOpenMenu(openMenu === "vocabularies" ? null : "vocabularies")} aria-expanded={openMenu === "vocabularies"} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${openMenu === "vocabularies" ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}>
           <span>Vocabularies</span>
           {adminCategories.length > 0 && (
             <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md font-semibold">
               {adminCategories.length}
             </span>
           )}
-          <span>{sharedVocabularyOpen ? "⌃" : "⌄"}</span>
+          <span className="text-base leading-none" aria-hidden="true">{sharedVocabularyOpen ? "-" : "+"}</span>
         </button>
 
-        {sharedVocabularyOpen && adminCategories.length > 3 && (
+        {openMenu === "vocabularies" && adminCategories.length > 3 && (
           <div className="px-1 mb-2">
             <input
               type="text"
@@ -912,7 +924,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
           </div>
         )}
 
-        {sharedVocabularyOpen && <div className="space-y-1">
+        {openMenu === "vocabularies" && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
           {filteredCategories.length ? (
             filteredCategories.map((category) => (
               <button
@@ -944,8 +956,8 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       </div>
 
       <div>
-        <button type="button" onClick={() => setConditionOpen(!conditionOpen)} aria-expanded={conditionOpen} className="w-full px-3 mb-2 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-200"><span>My condition</span><span>{conditionOpen ? "⌃" : "⌄"}</span></button>
-        {conditionOpen && <div className="space-y-1">
+        <button type="button" onClick={() => setOpenMenu(conditionOpen ? null : "condition")} aria-expanded={conditionOpen} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${conditionOpen ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}><span>My condition</span><span className="text-base leading-none" aria-hidden="true">{conditionOpen ? "-" : "+"}</span></button>
+        {conditionOpen && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
           <button
             type="button"
             className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${
