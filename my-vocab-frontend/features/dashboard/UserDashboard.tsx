@@ -11,7 +11,7 @@ import ParagraphPanel from "./ParagraphPanel";
 
 type View = "profile" | "my-categories" | "learned" | "pending" | "exams" | `exam:${string}` | `exam-result:${string}` | `category:${string}` | `own-category:${string}` | `paragraph:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
-type MenuSection = "account" | "my-vocabulary" | "vocabularies" | "paragraphs" | "condition";
+type MenuSection = "account" | "vocabularies" | "paragraphs";
 
 const vocabularyKey = (categoryId: string, index: number) => `${categoryId}:${index}`;
 
@@ -805,10 +805,8 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [myCategorySearchQuery, setMyCategorySearchQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<MenuSection | null>(null);
-  const myVocabularyOpen = openMenu === "my-vocabulary";
   const sharedVocabularyOpen = openMenu === "vocabularies";
   const paragraphsOpen = openMenu === "paragraphs";
-  const conditionOpen = openMenu === "condition";
 
   const adminCategories = profile.categories.admin ?? [];
   const { data: paragraphCategories = [] } = useGetParagraphCategoriesQuery();
@@ -881,32 +879,68 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
           aria-expanded={openMenu === "account"}
           className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${openMenu === "account" ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}
         >
-          <span>Account</span>
+          <span>Profile</span>
           <span className="text-base leading-none" aria-hidden="true">{openMenu === "account" ? "-" : "+"}</span>
         </button>
         {openMenu === "account" && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
           <button
-          type="button"
-          className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            activeView === "profile"
-              ? "bg-sky-500/20 text-sky-100 font-semibold"
-              : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
-          }`}
-          onClick={() => handleNavigate("profile")}
-        >
-          Profile
+            type="button"
+            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeView === "profile"
+                ? "bg-sky-500/20 text-sky-100 font-semibold"
+                : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
+            }`}
+            onClick={() => handleNavigate("profile")}
+          >
+            Profile
           </button>
-        </div>}
-      </div>
-
-      <div>
-        <button type="button" onClick={() => setOpenMenu(openMenu === "my-vocabulary" ? null : "my-vocabulary")} aria-expanded={openMenu === "my-vocabulary"} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${openMenu === "my-vocabulary" ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}>
-          <span>My vocabulary</span><span className="text-base leading-none" aria-hidden="true">{myVocabularyOpen ? "-" : "+"}</span>
-        </button>
-        {openMenu === "my-vocabulary" && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
-          <button type="button" className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${activeView === "my-categories" ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`} onClick={() => handleNavigate("my-categories")}><span>My categories</span><span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${activeView === "my-categories" ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{ownCategories.length}</span></button>
-          {ownCategories.length > 3 && <input type="text" value={myCategorySearchQuery} onChange={(e) => setMyCategorySearchQuery(e.target.value)} placeholder="Filter my categories..." className="w-full mt-1 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg placeholder-slate-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500" />}
-          {filteredOwnCategories.map((category) => <button type="button" key={category._id} onClick={() => handleNavigate(`own-category:${category._id}`)} className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${selectedOwnCategoryId === category._id ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}><span className="truncate">{category.name}</span><span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${selectedOwnCategoryId === category._id ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{category.vocabularies.length}</span></button>)}
+          <button
+            type="button"
+            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${
+              activeView === "learned"
+                ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+            onClick={() => handleNavigate("learned")}
+          >
+            <span>Learned</span>
+            <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+              activeView === "learned"
+                ? "bg-indigo-500/60 text-indigo-100"
+                : "bg-slate-700 text-slate-400"
+            }`}>
+              {profile.account.learned.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${
+              activeView === "pending"
+                ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+            onClick={() => handleNavigate("pending")}
+          >
+            <span>Today task</span>
+            <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+              activeView === "pending"
+                ? "bg-indigo-500/60 text-indigo-100"
+                : profile.account.pending.length > 0
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-slate-700 text-slate-400"
+            }`}>
+              {profile.account.pending.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNavigate("exams")}
+            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeView === "exams" ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            Exam history
+          </button>
         </div>}
       </div>
 
@@ -967,51 +1001,6 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       <div>
         <button type="button" onClick={() => setOpenMenu(paragraphsOpen ? null : "paragraphs")} aria-expanded={paragraphsOpen} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${paragraphsOpen ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}><span>Paragraphs</span><span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md font-semibold">{paragraphCategories.length}</span><span className="text-base leading-none" aria-hidden="true">{paragraphsOpen ? "-" : "+"}</span></button>
         {paragraphsOpen && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">{paragraphCategories.length ? paragraphCategories.map((category) => <button type="button" key={category._id} onClick={() => handleNavigate(`paragraph:${category._id}`)} className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${selectedParagraphCategoryId === category._id ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>{category.name}</button>) : <span className="block px-3 py-1 text-xs text-slate-500">No paragraph categories</span>}</div>}
-      </div>
-
-      <div>
-        <button type="button" onClick={() => setOpenMenu(conditionOpen ? null : "condition")} aria-expanded={conditionOpen} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${conditionOpen ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}><span>My condition</span><span className="text-base leading-none" aria-hidden="true">{conditionOpen ? "-" : "+"}</span></button>
-        {conditionOpen && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
-          <button
-            type="button"
-            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${
-              activeView === "learned"
-                ? "bg-indigo-600 text-white font-semibold shadow-xs"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
-            onClick={() => handleNavigate("learned")}
-          >
-            <span>Learned</span>
-            <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-              activeView === "learned"
-                ? "bg-indigo-500/60 text-indigo-100"
-                : "bg-slate-700 text-slate-400"
-            }`}>
-              {profile.account.learned.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${
-              activeView === "pending"
-                ? "bg-indigo-600 text-white font-semibold shadow-xs"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
-            onClick={() => handleNavigate("pending")}
-          >
-            <span>Today task</span>
-            <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-              activeView === "pending"
-                ? "bg-indigo-500/60 text-indigo-100"
-                : profile.account.pending.length > 0
-                  ? "bg-amber-500/20 text-amber-400"
-                  : "bg-slate-700 text-slate-400"
-            }`}>
-              {profile.account.pending.length}
-            </span>
-          </button>
-          <button type="button" onClick={() => handleNavigate("exams")} className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeView === "exams" ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>Exam history</button>
-        </div>}
       </div>
     </div>
   );
