@@ -76,8 +76,8 @@ export default function ParagraphPanel({ categoryId, canDelete = false, onNotice
     {pagination}
 
     {wordsParagraph && (
-      <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Used words">
-        <div className="fixed top-0 left-0 right-0 h-[50vh] flex flex-col bg-white p-5 border-b border-slate-200 rounded-b-2xl">
+      <div className="fixed inset-0 z-50 pointer-events-none lg:hidden" role="dialog" aria-modal="true" aria-label="Used words">
+        <div className="fixed top-0 left-0 right-0 h-[50vh] flex flex-col bg-white p-5 border-b border-slate-200 rounded-b-2xl pointer-events-auto">
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <h3 className="text-lg font-bold text-slate-900">Used words</h3>
             <button type="button" onClick={() => setWordsDialogIndex(null)} className="rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100">Close</button>
