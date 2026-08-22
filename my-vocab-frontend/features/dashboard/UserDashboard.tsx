@@ -8,10 +8,11 @@ import type { Category, PersonalVocabulary, Profile } from "@/redux/features/aut
 import VocabularyGraph from "./VocabularyGraph";
 import { ExamHistoryPanel, ExamPanel } from "./ExamPanel";
 import ParagraphPanel from "./ParagraphPanel";
+import VocabularyPdfPanel from "./VocabularyPdfPanel";
 
-type View = "profile" | "my-categories" | "learned" | "pending" | "exams" | `exam:${string}` | `exam-result:${string}` | `category:${string}` | `own-category:${string}` | `paragraph:${string}`;
+type View = "profile" | "my-categories" | "learned" | "pending" | "exams" | `exam:${string}` | `exam-result:${string}` | `category:${string}` | `own-category:${string}` | `paragraph:${string}` | `pdf:${string}`;
 type Props = { profile: Profile; onSignOut: () => void };
-type MenuSection = "account" | "vocabularies" | "paragraphs";
+type MenuSection = "account" | "vocabularies" | "paragraphs" | "vocabulary-pdf";
 
 const vocabularyKey = (categoryId: string, index: number) => `${categoryId}:${index}`;
 
@@ -797,16 +798,17 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
     if (pathname.startsWith("/user/categories/own/")) return `own-category:${pathname.slice("/user/categories/own/".length)}`;
     if (pathname.startsWith("/user/categories/shared/")) return `category:${pathname.slice("/user/categories/shared/".length)}`;
     if (pathname.startsWith("/user/paragraphs/")) return `paragraph:${pathname.slice("/user/paragraphs/".length)}`;
+    if (pathname.startsWith("/user/vocabulary-pdf/")) return `pdf:${pathname.slice("/user/vocabulary-pdf/".length)}`;
     return "profile";
   })();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [contentTheme, setContentTheme] = useState<"light" | "dark">("dark");
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
-  const [myCategorySearchQuery, setMyCategorySearchQuery] = useState("");
   const [openMenu, setOpenMenu] = useState<MenuSection | null>(null);
   const sharedVocabularyOpen = openMenu === "vocabularies";
   const paragraphsOpen = openMenu === "paragraphs";
+  const vocabularyPdfOpen = openMenu === "vocabulary-pdf";
 
   const adminCategories = profile.categories.admin ?? [];
   const { data: paragraphCategories = [] } = useGetParagraphCategoriesQuery();
@@ -815,15 +817,14 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
   const selectedCategoryId = activeView.startsWith("category:") ? activeView.slice("category:".length) : null;
   const selectedOwnCategoryId = activeView.startsWith("own-category:") ? activeView.slice("own-category:".length) : null;
   const selectedParagraphCategoryId = activeView.startsWith("paragraph:") ? activeView.slice("paragraph:".length) : null;
+  const selectedPdfCategoryId = activeView.startsWith("pdf:") ? activeView.slice("pdf:".length) : null;
   const selectedCategory = adminCategories.find((category) => category._id === selectedCategoryId);
   const selectedOwnCategory = ownCategories.find((category) => category._id === selectedOwnCategoryId);
   const selectedParagraphCategory = paragraphCategories.find((category) => category._id === selectedParagraphCategoryId);
+  const selectedPdfCategory = adminCategories.find((category) => category._id === selectedPdfCategoryId);
 
   const filteredCategories = adminCategories.filter((category) =>
     category.name.toLowerCase().includes(categorySearchQuery.toLowerCase().trim())
-  );
-  const filteredOwnCategories = ownCategories.filter((category) =>
-    category.name.toLowerCase().includes(myCategorySearchQuery.toLowerCase().trim())
   );
 
   const title =
@@ -854,6 +855,7 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
     else if (view.startsWith("own-category:")) path = `/user/categories/own/${view.slice("own-category:".length)}`;
     else if (view.startsWith("category:")) path = `/user/categories/shared/${view.slice("category:".length)}`;
     else if (view.startsWith("paragraph:")) path = `/user/paragraphs/${view.slice("paragraph:".length)}`;
+    else if (view.startsWith("pdf:")) path = `/user/vocabulary-pdf/${view.slice("pdf:".length)}`;
     router.push(path);
     setMobileMenuOpen(false);
   }
@@ -1001,6 +1003,22 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
       <div>
         <button type="button" onClick={() => setOpenMenu(paragraphsOpen ? null : "paragraphs")} aria-expanded={paragraphsOpen} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${paragraphsOpen ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}><span>Paragraphs</span><span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md font-semibold">{paragraphCategories.length}</span><span className="text-base leading-none" aria-hidden="true">{paragraphsOpen ? "-" : "+"}</span></button>
         {paragraphsOpen && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">{paragraphCategories.length ? paragraphCategories.map((category) => <button type="button" key={category._id} onClick={() => handleNavigate(`paragraph:${category._id}`)} className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${selectedParagraphCategoryId === category._id ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>{category.name}</button>) : <span className="block px-3 py-1 text-xs text-slate-500">No paragraph categories</span>}</div>}
+      </div>
+
+      <div>
+        <button type="button" onClick={() => setOpenMenu(vocabularyPdfOpen ? null : "vocabulary-pdf")} aria-expanded={vocabularyPdfOpen} className={`w-full px-3 py-3 rounded-lg border text-left flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider transition-colors ${vocabularyPdfOpen ? "border-indigo-500/50 bg-indigo-950/60 text-indigo-100" : "border-slate-800 bg-slate-800/70 text-indigo-200 hover:bg-slate-800 hover:text-white"}`}>
+          <span>Vocabulary In PDF</span>
+          {adminCategories.length > 0 && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-md font-semibold">{adminCategories.length}</span>}
+          <span className="text-base leading-none" aria-hidden="true">{vocabularyPdfOpen ? "-" : "+"}</span>
+        </button>
+        {vocabularyPdfOpen && <div className="mt-1.5 ml-3 border-l border-slate-700 pl-2 space-y-1">
+          {adminCategories.length ? adminCategories.map((category) => (
+            <button type="button" key={category._id} onClick={() => handleNavigate(`pdf:${category._id}`)} className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 ${selectedPdfCategoryId === category._id ? "bg-indigo-600 text-white font-semibold shadow-xs" : "text-slate-300 hover:bg-slate-800 hover:text-white"}`}>
+              <span className="truncate">{category.name}</span>
+              <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${selectedPdfCategoryId === category._id ? "bg-indigo-500/60 text-indigo-100" : "bg-slate-700 text-slate-400"}`}>{category.vocabularies.length}</span>
+            </button>
+          )) : <span className="block px-3 py-1 text-xs text-slate-500">No vocabulary categories</span>}
+        </div>}
       </div>
     </div>
   );
@@ -1163,6 +1181,8 @@ export default function UserDashboard({ profile, onSignOut }: Props) {
         {activeView === "my-categories" && <PersonalCategoryManager categories={ownCategories} />}
 
         {selectedParagraphCategoryId && <ParagraphPanel key={selectedParagraphCategoryId} categoryId={selectedParagraphCategoryId} />}
+
+        {selectedPdfCategory && <VocabularyPdfPanel category={selectedPdfCategory} />}
 
         {selectedCategory && (
           <CategoryPanel
